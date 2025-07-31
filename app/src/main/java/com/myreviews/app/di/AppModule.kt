@@ -29,4 +29,9 @@ object AppModule {
     // Repository wird immer mit dem aktuellen Service erstellt
     val restaurantRepository: RestaurantRepository
         get() = RestaurantRepository(searchService)
+    
+    // Review Repository
+    val reviewRepository: com.myreviews.app.data.repository.ReviewRepository by lazy {
+        com.myreviews.app.data.repository.ReviewRepository(database.reviewDao())
+    }
 }
