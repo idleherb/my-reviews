@@ -34,6 +34,11 @@
             </intent-filter>
         </activity>
         
+        <activity
+            android:name=".ui.review.AddReviewActivity"
+            android:theme="@style/Theme.MyReviews"
+            android:windowSoftInputMode="adjustResize" />
+        
     </application>
 
 </manifest>

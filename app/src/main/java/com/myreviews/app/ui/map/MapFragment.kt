@@ -19,11 +19,13 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import org.osmdroid.views.overlay.Marker
 import com.myreviews.app.data.repository.RestaurantRepository
 import com.myreviews.app.di.AppModule
+import com.myreviews.app.ui.review.AddReviewActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.util.Log
+import android.content.Intent
 
 class MapFragment : Fragment() {
     
@@ -181,6 +183,23 @@ class MapFragment : Fragment() {
                         setOnMarkerClickListener { marker, mapView ->
                             marker.showInfoWindow()
                             mapView.controller.animateTo(marker.position)
+                            
+                            // Zeige Dialog zur Auswahl
+                            android.app.AlertDialog.Builder(requireContext())
+                                .setTitle(restaurant.name)
+                                .setMessage(restaurant.address)
+                                .setPositiveButton("Bewertung abgeben") { _, _ ->
+                                    val intent = Intent(requireContext(), AddReviewActivity::class.java).apply {
+                                        putExtra("restaurant_id", restaurant.id)
+                                        putExtra("restaurant_name", restaurant.name)
+                                        putExtra("restaurant_lat", restaurant.latitude)
+                                        putExtra("restaurant_lon", restaurant.longitude)
+                                        putExtra("restaurant_address", restaurant.address)
+                                    }
+                                    startActivity(intent)
+                                }
+                                .setNegativeButton("Abbrechen", null)
+                                .show()
                             true
                         }
                     }
