@@ -16,11 +16,18 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import org.osmdroid.views.overlay.Marker
+import com.myreviews.app.data.repository.RestaurantRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MapFragment : Fragment() {
     
     private lateinit var mapView: MapView
     private lateinit var myLocationOverlay: MyLocationNewOverlay
+    private val restaurantRepository = RestaurantRepository()
     
     companion object {
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
@@ -50,6 +57,9 @@ class MapFragment : Fragment() {
             controller.setCenter(BERLIN_CENTER)
         }
         
+        // User-Agent setzen für OSMDroid (wichtig!)
+        Configuration.getInstance().userAgentValue = requireContext().packageName
+        
         setupLocationOverlay()
         requestPermissionsIfNecessary()
         
@@ -63,8 +73,22 @@ class MapFragment : Fragment() {
         ).apply {
             enableMyLocation()
             enableFollowLocation()
+            
+            // Icon für den aktuellen Standort anpassen
+            setPersonHotspot(24.0f, 24.0f)
         }
         mapView.overlays.add(myLocationOverlay)
+        
+        // Nach 2 Sekunden zur aktuellen Position zoomen und Restaurants laden
+        mapView.postDelayed({
+            myLocationOverlay.myLocation?.let { location ->
+                mapView.controller.animateTo(location)
+                mapView.controller.setZoom(17.0)
+                
+                // Restaurants in der Nähe laden
+                loadNearbyRestaurants(location)
+            }
+        }, 2000)
     }
     
     private fun requestPermissionsIfNecessary() {
@@ -95,5 +119,43 @@ class MapFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         mapView.onPause()
+    }
+    
+    private fun loadNearbyRestaurants(userLocation: GeoPoint) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val restaurants = withContext(Dispatchers.IO) {
+                    restaurantRepository.getRestaurantsNearby(
+                        userLocation.latitude,
+                        userLocation.longitude,
+                        1000 // 1km Radius
+                    )
+                }
+                
+                // Marker für jedes Restaurant hinzufügen
+                restaurants.forEach { restaurant ->
+                    val marker = Marker(mapView).apply {
+                        position = GeoPoint(restaurant.latitude, restaurant.longitude)
+                        title = restaurant.name
+                        snippet = restaurant.address
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        
+                        // Click-Listener für den Marker
+                        setOnMarkerClickListener { marker, mapView ->
+                            marker.showInfoWindow()
+                            mapView.controller.animateTo(marker.position)
+                            true
+                        }
+                    }
+                    mapView.overlays.add(marker)
+                }
+                
+                // Karte neu zeichnen
+                mapView.invalidate()
+                
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 }
