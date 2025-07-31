@@ -9,6 +9,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.myreviews.app.di.AppModule
 import com.myreviews.app.domain.model.Review
+import com.myreviews.app.domain.model.Restaurant
+import com.myreviews.app.MainActivity
+import com.myreviews.app.ui.map.MapFragment
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -49,6 +52,14 @@ class ReviewsFragment : Fragment() {
         
         loadReviews()
         
+        // Click Listener für die Items
+        listView.setOnItemClickListener { _, _, position, _ ->
+            val adapter = listView.adapter as? ReviewAdapter
+            adapter?.getItem(position)?.let { review ->
+                navigateToRestaurantOnMap(review)
+            }
+        }
+        
         return layout
     }
     
@@ -83,6 +94,9 @@ class ReviewsFragment : Fragment() {
             val itemView = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(24, 24, 24, 24)
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(android.R.drawable.list_selector_background)
             }
             
             // Restaurant Name
@@ -134,6 +148,15 @@ class ReviewsFragment : Fragment() {
                 setPadding(0, 8, 0, 0)
             })
             
+            // Hinweis zum Anklicken
+            itemView.addView(TextView(requireContext()).apply {
+                text = "→ Auf Karte anzeigen"
+                textSize = 12f
+                setTextColor(0xFF2196F3.toInt()) // Blau
+                setPadding(0, 8, 0, 0)
+                setTypeface(null, android.graphics.Typeface.ITALIC)
+            })
+            
             // Separator
             if (position < reviews.size - 1) {
                 itemView.addView(View(requireContext()).apply {
@@ -148,6 +171,28 @@ class ReviewsFragment : Fragment() {
             }
             
             return itemView
+        }
+    }
+    
+    private fun navigateToRestaurantOnMap(review: Review) {
+        // Restaurant-Objekt aus Review erstellen
+        val restaurant = Restaurant(
+            id = review.restaurantId,
+            name = review.restaurantName,
+            latitude = review.restaurantLat,
+            longitude = review.restaurantLon,
+            address = review.restaurantAddress,
+            averageRating = null,
+            reviewCount = 0
+        )
+        
+        // Zur Karte wechseln und Restaurant zeigen
+        (activity as? MainActivity)?.let { mainActivity ->
+            // Restaurant-Position für MapFragment speichern
+            MapFragment.pendingRestaurant = restaurant
+            
+            // Zum Karten-Tab wechseln
+            mainActivity.switchToMapTab()
         }
     }
 }
