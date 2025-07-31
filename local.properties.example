@@ -1,0 +1,6 @@
+# Diese Datei zu local.properties kopieren und anpassen
+# SDK Pfad für macOS (Standard Android Studio Installation):
+sdk.dir=/Users/IHR_USERNAME/Library/Android/sdk
+
+# Alternativ wenn Android SDK über Homebrew installiert:
+# sdk.dir=/usr/local/share/android-sdk
