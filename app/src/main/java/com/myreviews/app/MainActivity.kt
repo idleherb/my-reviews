@@ -133,4 +133,8 @@ class MainActivity : AppCompatActivity() {
             }
             .show()
     }
+    
+    fun switchToMapTab() {
+        viewPager.currentItem = 0
+    }
 }

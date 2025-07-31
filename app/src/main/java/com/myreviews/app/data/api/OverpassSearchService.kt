@@ -142,4 +142,60 @@ class OverpassSearchService : RestaurantSearchService {
             emptyList()
         }
     }
+    
+    override suspend fun getRestaurantsInBounds(
+        boundingBox: BoundingBox
+    ): List<Restaurant> = withContext(Dispatchers.IO) {
+        try {
+            val bbox = "${boundingBox.latSouth},${boundingBox.lonWest},${boundingBox.latNorth},${boundingBox.lonEast}"
+            
+            val query = """
+                [out:json][timeout:25];
+                (
+                  node["amenity"~"restaurant|fast_food|cafe"]($bbox);
+                  way["amenity"~"restaurant|fast_food|cafe"]($bbox);
+                );
+                out center;
+            """.trimIndent()
+            
+            Log.d("OverpassSearch", "Loading restaurants in bounds: $bbox")
+            
+            val response = overpassApi.getRestaurants(query)
+            
+            Log.d("OverpassSearch", "Got ${response.elements.size} restaurants in bounds")
+            
+            response.elements.mapNotNull { element ->
+                val lat = element.lat ?: element.center?.lat
+                val lon = element.lon ?: element.center?.lon
+                
+                if (lat != null && lon != null && element.tags != null) {
+                    val name = element.tags["name"] 
+                        ?: element.tags["brand"] 
+                        ?: element.tags["operator"]
+                        ?: "Unbenanntes Restaurant"
+                        
+                    Restaurant(
+                        id = element.id,
+                        name = name,
+                        latitude = lat,
+                        longitude = lon,
+                        address = buildString {
+                            element.tags["addr:street"]?.let { append(it) }
+                            element.tags["addr:housenumber"]?.let { append(" $it") }
+                            if (isNotEmpty()) append(", ")
+                            element.tags["addr:postcode"]?.let { append("$it ") }
+                            element.tags["addr:city"]?.let { append(it) }
+                        }.ifEmpty { 
+                            element.tags["addr:full"] ?: "Keine Adresse verfügbar" 
+                        },
+                        averageRating = null,
+                        reviewCount = 0
+                    )
+                } else null
+            }
+        } catch (e: Exception) {
+            Log.e("OverpassSearch", "Error getting restaurants in bounds", e)
+            emptyList()
+        }
+    }
 }

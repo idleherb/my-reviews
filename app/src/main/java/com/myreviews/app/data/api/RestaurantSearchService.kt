@@ -16,4 +16,8 @@ interface RestaurantSearchService {
         lon: Double,
         radiusMeters: Int = 1000
     ): List<Restaurant>
+    
+    suspend fun getRestaurantsInBounds(
+        boundingBox: BoundingBox
+    ): List<Restaurant>
 }

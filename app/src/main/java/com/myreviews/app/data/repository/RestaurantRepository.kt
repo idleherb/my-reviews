@@ -12,6 +12,16 @@ class RestaurantRepository(
         return searchService.getNearbyRestaurants(lat, lon, radiusMeters)
     }
     
+    suspend fun getRestaurantsInBounds(
+        latSouth: Double,
+        lonWest: Double,
+        latNorth: Double,
+        lonEast: Double
+    ): List<Restaurant> {
+        val boundingBox = org.osmdroid.util.BoundingBox(latNorth, lonEast, latSouth, lonWest)
+        return searchService.getRestaurantsInBounds(boundingBox)
+    }
+    
     suspend fun searchRestaurantsByName(name: String, userLat: Double? = null, userLon: Double? = null): List<Restaurant> {
         val mapBounds = MapFragment.currentMapBounds
         val results = searchService.searchRestaurants(name, mapBounds, userLat, userLon)

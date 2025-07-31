@@ -13,6 +13,8 @@ import androidx.fragment.app.Fragment
 import com.myreviews.app.data.repository.RestaurantRepository
 import com.myreviews.app.di.AppModule
 import com.myreviews.app.domain.model.Restaurant
+import com.myreviews.app.MainActivity
+import com.myreviews.app.ui.map.MapFragment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -168,13 +170,15 @@ class SearchFragment : Fragment() {
         
         resultsListView.setOnItemClickListener { _, _, position, _ ->
             val restaurant = restaurants[position]
-            // Hier könntest du zur Karte navigieren und das Restaurant anzeigen
-            // Oder direkt zur Bewertungs-Activity gehen
-            Toast.makeText(
-                context, 
-                "${restaurant.name} ausgewählt", 
-                Toast.LENGTH_SHORT
-            ).show()
+            
+            // Zur Karte wechseln und Restaurant zeigen
+            (activity as? MainActivity)?.let { mainActivity ->
+                // Restaurant-Position für MapFragment speichern
+                MapFragment.pendingRestaurant = restaurant
+                
+                // Zum Karten-Tab wechseln
+                mainActivity.switchToMapTab()
+            }
         }
     }
     

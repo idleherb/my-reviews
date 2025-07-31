@@ -99,4 +99,11 @@ class NominatimSearchService : RestaurantSearchService {
         
         return searchRestaurants("", boundingBox, lat, lon)
     }
+    
+    override suspend fun getRestaurantsInBounds(
+        boundingBox: BoundingBox
+    ): List<Restaurant> {
+        // Nominatim ist nicht ideal für Bounds-Suche, verwende Search mit leerem Query
+        return searchRestaurants("", boundingBox)
+    }
 }
