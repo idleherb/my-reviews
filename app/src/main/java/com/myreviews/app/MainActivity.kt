@@ -96,13 +96,14 @@ class MainActivity : AppCompatActivity() {
     private fun setupViewPager() {
         viewPager.adapter = ViewPagerAdapter(this)
         
-        // Behalte beide Tabs im Speicher, damit die Karte nicht neu geladen wird
-        viewPager.offscreenPageLimit = 1
+        // Behalte alle Tabs im Speicher
+        viewPager.offscreenPageLimit = 2
         
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> "Karte"
                 1 -> "Suche"
+                2 -> "Bewertungen"
                 else -> ""
             }
         }.attach()
