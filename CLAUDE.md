@@ -55,6 +55,7 @@ Entwicklung einer nativen Android-App für Restaurantbewertungen ohne Google-Die
    - Rating-Sterne
    - Textfeld für Kommentare
    - Foto-Upload (optional)
+   - **WICHTIG: Dark Mode implementieren**
    
 8. **Docker-Setup für Home-Server erstellen**
    - Backend containerisieren
