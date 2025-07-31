@@ -18,6 +18,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import org.osmdroid.views.overlay.Marker
 import com.myreviews.app.data.repository.RestaurantRepository
+import com.myreviews.app.di.AppModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,7 +29,7 @@ class MapFragment : Fragment() {
     
     private lateinit var mapView: MapView
     private lateinit var myLocationOverlay: MyLocationNewOverlay
-    private val restaurantRepository = RestaurantRepository()
+    private val restaurantRepository = AppModule.restaurantRepository
     
     companion object {
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1

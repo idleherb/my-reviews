@@ -65,10 +65,21 @@ Entwicklung einer nativen Android-App für Restaurantbewertungen ohne Google-Die
 ## Architektur-Überlegungen
 - **MVVM Pattern** für Android App
 - **Repository Pattern** für Datenzugriff
+- **Dependency Injection**: Mit AppModule und ServiceLocator
 - **Offline-First**: Lokale Speicherung mit Sync zum Server
 - **Privacy-First**: Keine Tracking, keine Analytics
 
+## Implementierte Features
+1. ✅ Android Studio Projekt erstellt
+2. ✅ Gradle Build konfiguriert
+3. ✅ Basis-UI mit Kartenansicht implementiert
+4. ✅ OSMDroid für OpenStreetMap integriert
+5. ✅ Restaurant-Suche mit Overpass API
+6. ✅ Tab-Navigation (Karte/Suche)
+7. ✅ Dependency Injection mit AppModule
+8. ✅ Service-Umschaltung zwischen Overpass und Nominatim
+
 ## Nächste Schritte
-1. Android Studio Projekt erstellen
-2. Gradle Build konfigurieren
-3. Basis-UI mit Kartenansicht implementieren
+1. SQLite-Datenbank für Bewertungen einrichten
+2. UI für Bewertungseingabe erstellen
+3. Backend API entwickeln

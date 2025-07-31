@@ -11,6 +11,7 @@ import android.widget.*
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.myreviews.app.data.repository.RestaurantRepository
+import com.myreviews.app.di.AppModule
 import com.myreviews.app.domain.model.Restaurant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +30,7 @@ class SearchFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var emptyView: TextView
     
-    private val restaurantRepository = RestaurantRepository()
+    private val restaurantRepository = AppModule.restaurantRepository
     private var searchJob: Job? = null
     private var currentLocation: Location? = null
     
