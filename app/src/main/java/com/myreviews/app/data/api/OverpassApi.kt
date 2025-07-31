@@ -22,5 +22,11 @@ data class Element(
     val id: Long,
     val lat: Double? = null,
     val lon: Double? = null,
-    val tags: Map<String, String>? = null
+    val tags: Map<String, String>? = null,
+    val center: Center? = null
+)
+
+data class Center(
+    val lat: Double,
+    val lon: Double
 )

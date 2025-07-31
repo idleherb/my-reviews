@@ -79,50 +79,71 @@ class RestaurantRepository {
     suspend fun searchRestaurantsByName(name: String, userLat: Double? = null, userLon: Double? = null): List<Restaurant> {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d("RestaurantRepo", "Searching restaurants with Nominatim for: $name")
+                Log.d("RestaurantRepo", "Searching restaurants with Overpass for: $name")
                 
                 // Verwende die aktuellen Kartengrenzen oder falle auf Standard zurück
                 val mapBounds = MapFragment.currentMapBounds
-                val viewbox = if (mapBounds != null) {
-                    "${mapBounds.lonWest},${mapBounds.latSouth},${mapBounds.lonEast},${mapBounds.latNorth}"
+                val bbox = if (mapBounds != null) {
+                    "${mapBounds.latSouth},${mapBounds.lonWest},${mapBounds.latNorth},${mapBounds.lonEast}"
                 } else {
-                    // Fallback: Berechne Bounding Box um die aktuelle Position (ca. 20km Radius)
+                    // Fallback: Berechne Bounding Box um die aktuelle Position
                     val centerLat = userLat ?: 49.409445  // Heidelberg als Default
                     val centerLon = userLon ?: 8.693886
-                    val latDiff = 0.18
-                    val lonDiff = 0.18
-                    "${centerLon - lonDiff},${centerLat - latDiff},${centerLon + lonDiff},${centerLat + latDiff}"
+                    val latDiff = 0.05  // Kleinerer Bereich für bessere Performance
+                    val lonDiff = 0.05
+                    "${centerLat - latDiff},${centerLon - lonDiff},${centerLat + latDiff},${centerLon + lonDiff}"
                 }
                 
-                // Nominatim-Suche für Restaurants
-                val searchQuery = "$name restaurant"
-                val results = nominatimApi.searchRestaurants(
-                    query = searchQuery,
-                    viewbox = viewbox
-                )
+                // Overpass Query mit besserer Suche
+                // Sucht in name, brand, cuisine und operator Tags
+                val query = """
+                    [out:json][timeout:10];
+                    (
+                      node["amenity"~"restaurant|fast_food|cafe"]["name"~"${name}",i]($bbox);
+                      node["amenity"~"restaurant|fast_food|cafe"]["brand"~"${name}",i]($bbox);
+                      node["amenity"~"restaurant|fast_food|cafe"]["cuisine"~"${name}",i]($bbox);
+                      node["amenity"~"restaurant|fast_food|cafe"]["operator"~"${name}",i]($bbox);
+                      way["amenity"~"restaurant|fast_food|cafe"]["name"~"${name}",i]($bbox);
+                      way["amenity"~"restaurant|fast_food|cafe"]["brand"~"${name}",i]($bbox);
+                      way["amenity"~"restaurant|fast_food|cafe"]["cuisine"~"${name}",i]($bbox);
+                    );
+                    out center;
+                """.trimIndent()
                 
-                Log.d("RestaurantRepo", "Searching in area: $viewbox")
-                Log.d("RestaurantRepo", "Nominatim returned ${results.size} results")
+                Log.d("RestaurantRepo", "Searching in bbox: $bbox")
+                Log.d("RestaurantRepo", "Query: $query")
                 
-                val restaurants = results.mapNotNull { result ->
-                    // Restaurants und Fast-Food einschließen
-                    Restaurant(
-                            id = result.place_id,
-                            name = result.name ?: result.display_name.split(",").first(),
-                            latitude = result.lat.toDouble(),
-                            longitude = result.lon.toDouble(),
+                val response = overpassApi.getRestaurants(query)
+                Log.d("RestaurantRepo", "Overpass returned ${response.elements.size} results")
+                
+                val restaurants = response.elements.mapNotNull { element ->
+                    val lat = element.lat ?: element.center?.lat
+                    val lon = element.lon ?: element.center?.lon
+                    
+                    if (lat != null && lon != null && element.tags != null) {
+                        val name = element.tags["name"] 
+                            ?: element.tags["brand"] 
+                            ?: element.tags["operator"]
+                            ?: "Unbenanntes Restaurant"
+                            
+                        Restaurant(
+                            id = element.id,
+                            name = name,
+                            latitude = lat,
+                            longitude = lon,
                             address = buildString {
-                                result.address?.let { addr ->
-                                    addr.road?.let { append(it) }
-                                    addr.house_number?.let { append(" $it") }
-                                    if (isNotEmpty()) append(", ")
-                                    addr.postcode?.let { append("$it ") }
-                                    (addr.city ?: addr.town ?: addr.village)?.let { append(it) }
-                                }
-                            }.ifEmpty { result.display_name },
+                                element.tags["addr:street"]?.let { append(it) }
+                                element.tags["addr:housenumber"]?.let { append(" $it") }
+                                if (isNotEmpty()) append(", ")
+                                element.tags["addr:postcode"]?.let { append("$it ") }
+                                element.tags["addr:city"]?.let { append(it) }
+                            }.ifEmpty { 
+                                element.tags["addr:full"] ?: "Keine Adresse verfügbar" 
+                            },
                             averageRating = null,
                             reviewCount = 0
-                    )
+                        )
+                    } else null
                 }
                 
                 // Sortiere nach Entfernung, falls Benutzerposition vorhanden
