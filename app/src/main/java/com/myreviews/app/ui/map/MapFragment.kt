@@ -22,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.util.Log
 
 class MapFragment : Fragment() {
     
@@ -34,6 +35,9 @@ class MapFragment : Fragment() {
         // Grüne Meile 25, 69115 Heidelberg
         private val HEIDELBERG_CENTER = GeoPoint(49.409445, 8.693886)
         private const val DEFAULT_ZOOM = 16.0
+        
+        // Singleton für den aktuellen Kartenbereich
+        var currentMapBounds: org.osmdroid.util.BoundingBox? = null
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,10 +65,29 @@ class MapFragment : Fragment() {
         // User-Agent setzen für OSMDroid (wichtig!)
         Configuration.getInstance().userAgentValue = requireContext().packageName
         
+        // Kartenbewegungen überwachen
+        mapView.addMapListener(object : org.osmdroid.events.MapListener {
+            override fun onScroll(event: org.osmdroid.events.ScrollEvent?): Boolean {
+                updateMapBounds()
+                return false
+            }
+            
+            override fun onZoom(event: org.osmdroid.events.ZoomEvent?): Boolean {
+                updateMapBounds()
+                return false
+            }
+        })
+        
         setupLocationOverlay()
         requestPermissionsIfNecessary()
+        updateMapBounds()
         
         return mapView
+    }
+    
+    private fun updateMapBounds() {
+        currentMapBounds = mapView.boundingBox
+        Log.d("MapFragment", "Map bounds updated: ${currentMapBounds}")
     }
     
     private fun setupLocationOverlay() {

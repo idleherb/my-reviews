@@ -1,26 +1,41 @@
 package com.myreviews.app.data.repository
 
 import com.myreviews.app.data.api.OverpassApi
+import com.myreviews.app.data.api.NominatimApi
 import com.myreviews.app.domain.model.Restaurant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import android.util.Log
+import com.myreviews.app.ui.map.MapFragment
 
 class RestaurantRepository {
+    private val httpClient = okhttp3.OkHttpClient.Builder()
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .addHeader("User-Agent", "MyReviews Android App")
+                .build()
+            chain.proceed(request)
+        }
+        .build()
+    
     private val overpassApi: OverpassApi = Retrofit.Builder()
         .baseUrl("https://overpass-api.de/api/")
         .addConverterFactory(GsonConverterFactory.create())
-        .client(
-            okhttp3.OkHttpClient.Builder()
-                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                .build()
-        )
+        .client(httpClient)
         .build()
         .create(OverpassApi::class.java)
+    
+    private val nominatimApi: NominatimApi = Retrofit.Builder()
+        .baseUrl("https://nominatim.openstreetmap.org/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(httpClient)
+        .build()
+        .create(NominatimApi::class.java)
     
     suspend fun getRestaurantsNearby(lat: Double, lon: Double, radiusMeters: Int = 1000): List<Restaurant> {
         return withContext(Dispatchers.IO) {
@@ -64,46 +79,50 @@ class RestaurantRepository {
     suspend fun searchRestaurantsByName(name: String, userLat: Double? = null, userLon: Double? = null): List<Restaurant> {
         return withContext(Dispatchers.IO) {
             try {
-                // Vereinfachte Query - sucht in einem 50km Radius um Heidelberg
-                val centerLat = userLat ?: 49.409445  // Heidelberg als Default
-                val centerLon = userLon ?: 8.693886
-                val radiusKm = 50000  // 50km Radius
+                Log.d("RestaurantRepo", "Searching restaurants with Nominatim for: $name")
                 
-                val query = """
-                    [out:json][timeout:30];
-                    (
-                      node["amenity"="restaurant"]["name"~"$name",i](around:$radiusKm,$centerLat,$centerLon);
-                    );
-                    out body;
-                """.trimIndent()
+                // Verwende die aktuellen Kartengrenzen oder falle auf Standard zurück
+                val mapBounds = MapFragment.currentMapBounds
+                val viewbox = if (mapBounds != null) {
+                    "${mapBounds.lonWest},${mapBounds.latSouth},${mapBounds.lonEast},${mapBounds.latNorth}"
+                } else {
+                    // Fallback: Berechne Bounding Box um die aktuelle Position (ca. 20km Radius)
+                    val centerLat = userLat ?: 49.409445  // Heidelberg als Default
+                    val centerLon = userLon ?: 8.693886
+                    val latDiff = 0.18
+                    val lonDiff = 0.18
+                    "${centerLon - lonDiff},${centerLat - latDiff},${centerLon + lonDiff},${centerLat + latDiff}"
+                }
                 
-                Log.d("RestaurantRepo", "Searching for restaurants with name: $name")
-                Log.d("RestaurantRepo", "Query: $query")
+                // Nominatim-Suche für Restaurants
+                val searchQuery = "$name restaurant"
+                val results = nominatimApi.searchRestaurants(
+                    query = searchQuery,
+                    viewbox = viewbox
+                )
                 
-                val response = overpassApi.getRestaurants(query)
+                Log.d("RestaurantRepo", "Searching in area: $viewbox")
+                Log.d("RestaurantRepo", "Nominatim returned ${results.size} results")
                 
-                Log.d("RestaurantRepo", "Response received with ${response.elements.size} elements")
-                
-                val restaurants = response.elements.mapNotNull { element ->
-                    if (element.lat != null && element.lon != null) {
-                        element.tags?.get("name")?.let { restaurantName ->
-                            Restaurant(
-                                id = element.id,
-                                name = restaurantName,
-                                latitude = element.lat,
-                                longitude = element.lon,
-                                address = buildString {
-                                    element.tags["addr:street"]?.let { append(it) }
-                                    element.tags["addr:housenumber"]?.let { append(" $it") }
+                val restaurants = results.mapNotNull { result ->
+                    // Restaurants und Fast-Food einschließen
+                    Restaurant(
+                            id = result.place_id,
+                            name = result.name ?: result.display_name.split(",").first(),
+                            latitude = result.lat.toDouble(),
+                            longitude = result.lon.toDouble(),
+                            address = buildString {
+                                result.address?.let { addr ->
+                                    addr.road?.let { append(it) }
+                                    addr.house_number?.let { append(" $it") }
                                     if (isNotEmpty()) append(", ")
-                                    element.tags["addr:postcode"]?.let { append("$it ") }
-                                    element.tags["addr:city"]?.let { append(it) }
-                                }.ifEmpty { "Keine Adresse verfügbar" },
-                                averageRating = null,
-                                reviewCount = 0
-                            )
-                        }
-                    } else null
+                                    addr.postcode?.let { append("$it ") }
+                                    (addr.city ?: addr.town ?: addr.village)?.let { append(it) }
+                                }
+                            }.ifEmpty { result.display_name },
+                            averageRating = null,
+                            reviewCount = 0
+                    )
                 }
                 
                 // Sortiere nach Entfernung, falls Benutzerposition vorhanden
