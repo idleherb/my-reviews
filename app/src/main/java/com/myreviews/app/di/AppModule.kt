@@ -1,17 +1,30 @@
 package com.myreviews.app.di
 
+import android.content.Context
 import com.myreviews.app.data.api.RestaurantSearchService
 import com.myreviews.app.data.api.OverpassSearchService
 import com.myreviews.app.data.api.NominatimSearchService
 import com.myreviews.app.data.repository.RestaurantRepository
+import com.myreviews.app.data.database.AppDatabase
 
 object AppModule {
+    private lateinit var applicationContext: Context
+    
+    fun initialize(context: Context) {
+        applicationContext = context.applicationContext
+    }
+    
     // Dynamische Service-Auswahl basierend auf ServiceLocator
     private val searchService: RestaurantSearchService
         get() = when (ServiceLocator.currentSearchService) {
             SearchServiceType.OVERPASS -> OverpassSearchService()
             SearchServiceType.NOMINATIM -> NominatimSearchService()
         }
+    
+    // Database Singleton
+    val database: AppDatabase by lazy {
+        AppDatabase.getDatabase(applicationContext)
+    }
     
     // Repository wird immer mit dem aktuellen Service erstellt
     val restaurantRepository: RestaurantRepository
