@@ -31,8 +31,9 @@ class MapFragment : Fragment() {
     
     companion object {
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
-        private val BERLIN_CENTER = GeoPoint(52.520008, 13.404954)
-        private const val DEFAULT_ZOOM = 15.0
+        // Grüne Meile 25, 69115 Heidelberg
+        private val HEIDELBERG_CENTER = GeoPoint(49.409445, 8.693886)
+        private const val DEFAULT_ZOOM = 16.0
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,7 +55,7 @@ class MapFragment : Fragment() {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             controller.setZoom(DEFAULT_ZOOM)
-            controller.setCenter(BERLIN_CENTER)
+            controller.setCenter(HEIDELBERG_CENTER)
         }
         
         // User-Agent setzen für OSMDroid (wichtig!)

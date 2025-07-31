@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.location.LocationManager
 import android.content.Context
+import android.util.Log
 
 class SearchFragment : Fragment() {
     
@@ -128,10 +129,12 @@ class SearchFragment : Fragment() {
     }
     
     private fun searchRestaurants(query: String) {
+        Log.d("SearchFragment", "Starting search for: $query")
         showLoading()
         
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                Log.d("SearchFragment", "Calling repository...")
                 val results = withContext(Dispatchers.IO) {
                     restaurantRepository.searchRestaurantsByName(
                         query,
@@ -139,6 +142,7 @@ class SearchFragment : Fragment() {
                         currentLocation?.longitude
                     )
                 }
+                Log.d("SearchFragment", "Got ${results.size} results")
                 
                 if (results.isEmpty()) {
                     showNoResults()

@@ -5,18 +5,22 @@ import retrofit2.http.Query
 
 interface OverpassApi {
     @GET("interpreter")
+    @retrofit2.http.Headers("Accept: application/json")
     suspend fun getRestaurants(
         @Query("data") query: String
     ): OverpassResponse
 }
 
 data class OverpassResponse(
-    val elements: List<Element>
+    val version: Double? = null,
+    val generator: String? = null,
+    val elements: List<Element> = emptyList()
 )
 
 data class Element(
+    val type: String? = null,
     val id: Long,
-    val lat: Double,
-    val lon: Double,
-    val tags: Map<String, String>?
+    val lat: Double? = null,
+    val lon: Double? = null,
+    val tags: Map<String, String>? = null
 )
