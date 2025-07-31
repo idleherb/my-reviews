@@ -52,6 +52,12 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.6")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.6")
     
+    // Material Design
+    implementation("com.google.android.material:material:1.11.0")
+    
+    // ViewPager2
+    implementation("androidx.viewpager2:viewpager2:1.0.0")
+    
     // Room database
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
