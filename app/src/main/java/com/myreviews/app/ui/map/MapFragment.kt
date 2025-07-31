@@ -137,12 +137,24 @@ class MapFragment : Fragment() {
     
     override fun onResume() {
         super.onResume()
-        mapView.onResume()
+        if (::mapView.isInitialized) {
+            mapView.onResume()
+        }
     }
     
     override fun onPause() {
         super.onPause()
-        mapView.onPause()
+        if (::mapView.isInitialized) {
+            mapView.onPause()
+        }
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // MapView sauber aufräumen
+        if (::mapView.isInitialized) {
+            mapView.onDetach()
+        }
     }
     
     private fun loadNearbyRestaurants(userLocation: GeoPoint) {
