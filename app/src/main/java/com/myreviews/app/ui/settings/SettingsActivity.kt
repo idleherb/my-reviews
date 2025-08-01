@@ -3,9 +3,11 @@ package com.myreviews.app.ui.settings
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import com.google.android.material.button.MaterialButton
 import com.myreviews.app.di.ServiceLocator
 import com.myreviews.app.di.SearchServiceType
 import kotlinx.coroutines.CoroutineScope
@@ -20,8 +22,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var cloudSyncSwitch: SwitchCompat
     private lateinit var serverUrlEditText: EditText
     private lateinit var serverPortEditText: EditText
-    private lateinit var testConnectionButton: Button
-    private lateinit var saveButton: Button
+    private lateinit var testConnectionButton: MaterialButton
+    private lateinit var saveButton: MaterialButton
     private lateinit var statusTextView: TextView
     private lateinit var overpassRadioButton: RadioButton
     private lateinit var nominatimRadioButton: RadioButton
@@ -47,7 +49,24 @@ class SettingsActivity : AppCompatActivity() {
     }
     
     private fun setupUI() {
-        val scrollView = ScrollView(this)
+        // Haupt-Layout mit LinearLayout statt nur ScrollView
+        val mainLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        
+        // ScrollView für den scrollbaren Inhalt
+        val scrollView = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f // Nimmt den verfügbaren Platz ein
+            )
+        }
+        
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 32, 32, 32)
@@ -151,9 +170,11 @@ class SettingsActivity : AppCompatActivity() {
         }
         layout.addView(serverPortEditText)
         
-        // Test Connection Button
-        testConnectionButton = Button(this).apply {
+        // Test Connection Button (secondary style)
+        testConnectionButton = MaterialButton(this).apply {
             text = "Verbindung testen"
+            setTextColor(0xFF4CAF50.toInt()) // Grüne Schrift
+            background = null // Kein Hintergrund
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -171,22 +192,23 @@ class SettingsActivity : AppCompatActivity() {
         }
         layout.addView(statusTextView)
         
-        // Speichern Button
-        saveButton = Button(this).apply {
+        // ScrollView mit dem Inhalt füllen
+        scrollView.addView(layout)
+        mainLayout.addView(scrollView)
+        
+        // Speichern Button außerhalb der ScrollView am unteren Rand
+        saveButton = MaterialButton(this).apply {
             text = "Einstellungen speichern"
-            setBackgroundColor(0xFF4CAF50.toInt())
-            setTextColor(0xFFFFFFFF.toInt())
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                topMargin = 48
+                setMargins(32, 16, 32, 32) // Links, Oben, Rechts, Unten
             }
         }
-        layout.addView(saveButton)
+        mainLayout.addView(saveButton)
         
-        scrollView.addView(layout)
-        setContentView(scrollView)
+        setContentView(mainLayout)
         
         // Action Bar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -255,10 +277,27 @@ class SettingsActivity : AppCompatActivity() {
         serverPortEditText.isEnabled = isCloudSyncEnabled
         testConnectionButton.isEnabled = isCloudSyncEnabled
         
+        // Verbindung testen Button visuell anpassen
+        if (isCloudSyncEnabled) {
+            testConnectionButton.setTextColor(0xFF4CAF50.toInt()) // Grün
+        } else {
+            testConnectionButton.setTextColor(0xFFCCCCCC.toInt()) // Grau
+        }
+        
         // Save Button nur aktivieren wenn:
         // 1. Cloud-Sync aus ist ODER
         // 2. Cloud-Sync an ist UND Verbindungstest erfolgreich war
-        saveButton.isEnabled = !isCloudSyncEnabled || connectionTestPassed
+        val canSave = !isCloudSyncEnabled || connectionTestPassed
+        saveButton.isEnabled = canSave
+        
+        // Save Button visuell anpassen
+        if (canSave) {
+            saveButton.setBackgroundColor(0xFF4CAF50.toInt()) // Grün
+            saveButton.setTextColor(0xFFFFFFFF.toInt()) // Weiß
+        } else {
+            saveButton.setBackgroundColor(0xFFCCCCCC.toInt()) // Grau
+            saveButton.setTextColor(0xFF666666.toInt()) // Dunkelgrau
+        }
         
         if (!isCloudSyncEnabled) {
             statusTextView.text = ""
