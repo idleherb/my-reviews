@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material Design Elevation Styles -->
+    
+    <!-- Card Style with elevation -->
+    <style name="Widget.MyReviews.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardElevation">@dimen/card_elevation</item>
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="cardUseCompatPadding">true</item>
+        <item name="contentPadding">@dimen/padding_standard</item>
+    </style>
+    
+    <!-- Elevated Button Style -->
+    <style name="Widget.MyReviews.Button.Elevated" parent="Widget.Material3.Button.ElevatedButton">
+        <item name="android:elevation">@dimen/button_elevation</item>
+        <item name="android:stateListAnimator">@animator/button_state_list_animator</item>
+    </style>
+    
+    <!-- FAB Style -->
+    <style name="Widget.MyReviews.FloatingActionButton" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="elevation">6dp</item>
+        <item name="pressedTranslationZ">12dp</item>
+        <item name="hoveredFocusedTranslationZ">8dp</item>
+    </style>
+    
+    <!-- App Bar Style -->
+    <style name="Widget.MyReviews.AppBarLayout" parent="Widget.Material3.AppBarLayout">
+        <item name="elevation">4dp</item>
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+    
+    <!-- Dialog Style -->
+    <style name="ThemeOverlay.MyReviews.Dialog" parent="ThemeOverlay.Material3.Dialog">
+        <item name="android:windowElevation">@dimen/dialog_elevation</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.32</item>
+    </style>
+    
+    <!-- Bottom Sheet Style -->
+    <style name="Widget.MyReviews.BottomSheet" parent="Widget.Material3.BottomSheet">
+        <item name="elevation">16dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.MyReviews.BottomSheet</item>
+    </style>
+    
+    <!-- Shape Appearances -->
+    <style name="ShapeAppearance.MyReviews.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+    
+    <!-- Surface Styles with different elevations -->
+    <style name="Widget.MyReviews.Surface.Level0">
+        <item name="android:elevation">0dp</item>
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+    
+    <style name="Widget.MyReviews.Surface.Level1">
+        <item name="android:elevation">1dp</item>
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+    
+    <style name="Widget.MyReviews.Surface.Level2">
+        <item name="android:elevation">3dp</item>
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+    
+    <style name="Widget.MyReviews.Surface.Level3">
+        <item name="android:elevation">6dp</item>
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+    
+    <style name="Widget.MyReviews.Surface.Level4">
+        <item name="android:elevation">8dp</item>
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+    
+    <style name="Widget.MyReviews.Surface.Level5">
+        <item name="android:elevation">12dp</item>
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+</resources>

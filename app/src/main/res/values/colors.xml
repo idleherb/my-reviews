@@ -7,6 +7,11 @@
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     
+    <!-- Map Marker Colors -->
+    <color name="marker_restaurant">#1976D2</color> <!-- Material Blue 700 -->
+    <color name="marker_cafe">#6D4C41</color> <!-- Material Brown 600 -->
+    <color name="marker_fast_food">#D32F2F</color> <!-- Material Red 700 -->
+    
     <!-- Material Design 3 Color System - Light Theme -->
     <color name="md_theme_light_primary">#1B5E20</color>
     <color name="md_theme_light_onPrimary">#FFFFFF</color>

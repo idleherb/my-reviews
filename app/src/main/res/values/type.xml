@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material Design 3 Typography Scale -->
+    
+    <!-- Display styles -->
+    <style name="TextAppearance.MyReviews.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge">
+        <item name="android:textSize">57sp</item>
+        <item name="android:lineHeight">64sp</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.DisplayMedium" parent="TextAppearance.Material3.DisplayMedium">
+        <item name="android:textSize">45sp</item>
+        <item name="android:lineHeight">52sp</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.DisplaySmall" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="android:textSize">36sp</item>
+        <item name="android:lineHeight">44sp</item>
+    </style>
+    
+    <!-- Headline styles -->
+    <style name="TextAppearance.MyReviews.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:textSize">32sp</item>
+        <item name="android:lineHeight">40sp</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textSize">28sp</item>
+        <item name="android:lineHeight">36sp</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.HeadlineSmall" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textSize">24sp</item>
+        <item name="android:lineHeight">32sp</item>
+    </style>
+    
+    <!-- Title styles -->
+    <style name="TextAppearance.MyReviews.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">22sp</item>
+        <item name="android:lineHeight">28sp</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+        <item name="android:letterSpacing">0.0125</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+        <item name="android:letterSpacing">0.0071</item>
+    </style>
+    
+    <!-- Label styles -->
+    <style name="TextAppearance.MyReviews.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+        <item name="android:letterSpacing">0.0071</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.LabelMedium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+        <item name="android:letterSpacing">0.0417</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.LabelSmall" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">11sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+        <item name="android:letterSpacing">0.0455</item>
+    </style>
+    
+    <!-- Body styles -->
+    <style name="TextAppearance.MyReviews.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:letterSpacing">0.0313</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:letterSpacing">0.0179</item>
+    </style>
+    
+    <style name="TextAppearance.MyReviews.BodySmall" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:letterSpacing">0.0333</item>
+    </style>
+</resources>

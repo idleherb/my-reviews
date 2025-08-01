@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Roboto Medium is included by default in Android -->
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="500"
+        android:font="@android:font/sans-serif-medium" />
+</font-family>

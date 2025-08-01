@@ -33,11 +33,15 @@ import kotlinx.coroutines.flow.first
 import android.widget.ScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.myreviews.app.R
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import android.widget.FrameLayout
 
 class MapFragment : Fragment() {
     
     private lateinit var mapView: MapView
     private lateinit var myLocationOverlay: MyLocationNewOverlay
+    private lateinit var myLocationButton: FloatingActionButton
     private val restaurantRepository = AppModule.restaurantRepository
     
     companion object {
@@ -68,12 +72,21 @@ class MapFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        // Inflate the layout
+        val rootView = inflater.inflate(R.layout.fragment_map, container, false)
+        val mapContainer = rootView.findViewById<FrameLayout>(R.id.mapContainer)
+        myLocationButton = rootView.findViewById(R.id.myLocationButton)
+        
+        // Create and setup map
         mapView = MapView(requireContext()).apply {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             controller.setZoom(DEFAULT_ZOOM)
             controller.setCenter(HEIDELBERG_CENTER)
         }
+        
+        // Add map to container
+        mapContainer.addView(mapView)
         
         // User-Agent setzen für OSMDroid (wichtig!)
         Configuration.getInstance().userAgentValue = requireContext().packageName
@@ -93,16 +106,44 @@ class MapFragment : Fragment() {
             }
         })
         
+        // Setup My Location button
+        myLocationButton.setOnClickListener {
+            centerOnMyLocation()
+        }
+        
         setupLocationOverlay()
         requestPermissionsIfNecessary()
         updateMapBounds()
         
-        return mapView
+        return rootView
     }
     
     private fun updateMapBounds() {
         currentMapBounds = mapView.boundingBox
         Log.d("MapFragment", "Map bounds updated: ${currentMapBounds}")
+    }
+    
+    private fun centerOnMyLocation() {
+        val location = myLocationOverlay.myLocation
+        if (location != null) {
+            mapView.controller.animateTo(location)
+            mapView.controller.setZoom(17.0)
+            
+            // Nach kurzer Verzögerung Restaurants laden
+            mapView.postDelayed({
+                loadRestaurantsInBounds()
+            }, 500)
+        } else {
+            // Falls keine Location verfügbar, zeige Toast
+            android.widget.Toast.makeText(
+                requireContext(), 
+                "Standort wird ermittelt...", 
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            
+            // Versuche Location zu aktivieren
+            myLocationOverlay.enableFollowLocation()
+        }
     }
     
     private fun setupLocationOverlay() {
@@ -111,7 +152,7 @@ class MapFragment : Fragment() {
             mapView
         ).apply {
             enableMyLocation()
-            enableFollowLocation()
+            // Follow location nur bei Button-Klick
             
             // Icon für den aktuellen Standort anpassen
             setPersonHotspot(24.0f, 24.0f)
@@ -209,13 +250,13 @@ class MapFragment : Fragment() {
                         snippet = restaurant.address
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         
-                        // Icon basierend auf amenity type
-                        val iconRes = when (restaurant.amenityType) {
-                            "cafe" -> com.myreviews.app.R.drawable.ic_cafe_marker
-                            "fast_food" -> com.myreviews.app.R.drawable.ic_fast_food_marker
-                            else -> com.myreviews.app.R.drawable.ic_restaurant_marker
+                        // Icon basierend auf amenity type mit Material Icon Font
+                        val (iconChar, color) = when (restaurant.amenityType) {
+                            "cafe" -> MaterialIcons.LOCAL_CAFE to ContextCompat.getColor(requireContext(), R.color.marker_cafe)
+                            "fast_food" -> MaterialIcons.FASTFOOD to ContextCompat.getColor(requireContext(), R.color.marker_fast_food)
+                            else -> MaterialIcons.RESTAURANT to ContextCompat.getColor(requireContext(), R.color.marker_restaurant)
                         }
-                        icon = androidx.core.content.ContextCompat.getDrawable(requireContext(), iconRes)
+                        icon = MarkerIconHelper.createMarkerIcon(requireContext(), iconChar, color)
                         
                         // Click-Listener für den Marker
                         setOnMarkerClickListener { marker, mapView ->
@@ -280,13 +321,13 @@ class MapFragment : Fragment() {
                         snippet = restaurant.address
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         
-                        // Icon basierend auf amenity type
-                        val iconRes = when (restaurant.amenityType) {
-                            "cafe" -> com.myreviews.app.R.drawable.ic_cafe_marker
-                            "fast_food" -> com.myreviews.app.R.drawable.ic_fast_food_marker
-                            else -> com.myreviews.app.R.drawable.ic_restaurant_marker
+                        // Icon basierend auf amenity type mit Material Icon Font
+                        val (iconChar, color) = when (restaurant.amenityType) {
+                            "cafe" -> MaterialIcons.LOCAL_CAFE to ContextCompat.getColor(requireContext(), R.color.marker_cafe)
+                            "fast_food" -> MaterialIcons.FASTFOOD to ContextCompat.getColor(requireContext(), R.color.marker_fast_food)
+                            else -> MaterialIcons.RESTAURANT to ContextCompat.getColor(requireContext(), R.color.marker_restaurant)
                         }
-                        icon = androidx.core.content.ContextCompat.getDrawable(requireContext(), iconRes)
+                        icon = MarkerIconHelper.createMarkerIcon(requireContext(), iconChar, color)
                         
                         // Click-Listener für den Marker
                         setOnMarkerClickListener { marker, mapView ->

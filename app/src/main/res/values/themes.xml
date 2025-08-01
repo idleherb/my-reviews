@@ -35,5 +35,22 @@
         <item name="colorOnSurfaceInverse">@color/md_theme_light_inverseOnSurface</item>
         <item name="colorSurfaceInverse">@color/md_theme_light_inverseSurface</item>
         <item name="colorPrimaryInverse">@color/md_theme_light_inversePrimary</item>
+        
+        <!-- Typography -->
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.MyReviews.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.MyReviews.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.MyReviews.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.MyReviews.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.MyReviews.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.MyReviews.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.MyReviews.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.MyReviews.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.MyReviews.TitleSmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.MyReviews.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.MyReviews.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.MyReviews.LabelSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.MyReviews.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.MyReviews.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.MyReviews.BodySmall</item>
     </style>
 </resources>
