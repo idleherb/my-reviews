@@ -26,6 +26,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.util.Log
 import android.content.Intent
+import androidx.lifecycle.lifecycleScope
+import com.myreviews.app.domain.model.Restaurant
+import com.myreviews.app.MainActivity
+import kotlinx.coroutines.flow.first
+import android.widget.ScrollView
+import android.widget.LinearLayout
+import android.widget.TextView
 
 class MapFragment : Fragment() {
     
@@ -156,21 +163,7 @@ class MapFragment : Fragment() {
                 
                 // Nach kurzer Verzögerung Dialog zeigen
                 mapView.postDelayed({
-                    android.app.AlertDialog.Builder(requireContext())
-                        .setTitle(restaurant.name)
-                        .setMessage(restaurant.address)
-                        .setPositiveButton("Bewertung abgeben") { _, _ ->
-                            val intent = Intent(requireContext(), AddReviewActivity::class.java).apply {
-                                putExtra("restaurant_id", restaurant.id)
-                                putExtra("restaurant_name", restaurant.name)
-                                putExtra("restaurant_lat", restaurant.latitude)
-                                putExtra("restaurant_lon", restaurant.longitude)
-                                putExtra("restaurant_address", restaurant.address)
-                            }
-                            startActivity(intent)
-                        }
-                        .setNegativeButton("Abbrechen", null)
-                        .show()
+                    showRestaurantDialog(restaurant)
                 }, 500)
                 
                 // Restaurant verarbeitet, zurücksetzen
@@ -216,27 +209,19 @@ class MapFragment : Fragment() {
                         snippet = restaurant.address
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         
+                        // Benutzerdefiniertes Restaurant-Icon
+                        icon = androidx.core.content.ContextCompat.getDrawable(
+                            requireContext(), 
+                            com.myreviews.app.R.drawable.ic_restaurant_marker
+                        )
+                        
                         // Click-Listener für den Marker
                         setOnMarkerClickListener { marker, mapView ->
                             marker.showInfoWindow()
                             mapView.controller.animateTo(marker.position)
                             
                             // Zeige Dialog zur Auswahl
-                            android.app.AlertDialog.Builder(requireContext())
-                                .setTitle(restaurant.name)
-                                .setMessage(restaurant.address)
-                                .setPositiveButton("Bewertung abgeben") { _, _ ->
-                                    val intent = Intent(requireContext(), AddReviewActivity::class.java).apply {
-                                        putExtra("restaurant_id", restaurant.id)
-                                        putExtra("restaurant_name", restaurant.name)
-                                        putExtra("restaurant_lat", restaurant.latitude)
-                                        putExtra("restaurant_lon", restaurant.longitude)
-                                        putExtra("restaurant_address", restaurant.address)
-                                    }
-                                    startActivity(intent)
-                                }
-                                .setNegativeButton("Abbrechen", null)
-                                .show()
+                            showRestaurantDialog(restaurant)
                             true
                         }
                     }
@@ -293,27 +278,19 @@ class MapFragment : Fragment() {
                         snippet = restaurant.address
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         
+                        // Benutzerdefiniertes Restaurant-Icon
+                        icon = androidx.core.content.ContextCompat.getDrawable(
+                            requireContext(), 
+                            com.myreviews.app.R.drawable.ic_restaurant_marker
+                        )
+                        
                         // Click-Listener für den Marker
                         setOnMarkerClickListener { marker, mapView ->
                             marker.showInfoWindow()
                             mapView.controller.animateTo(marker.position)
                             
                             // Zeige Dialog zur Auswahl
-                            android.app.AlertDialog.Builder(requireContext())
-                                .setTitle(restaurant.name)
-                                .setMessage(restaurant.address)
-                                .setPositiveButton("Bewertung abgeben") { _, _ ->
-                                    val intent = Intent(requireContext(), AddReviewActivity::class.java).apply {
-                                        putExtra("restaurant_id", restaurant.id)
-                                        putExtra("restaurant_name", restaurant.name)
-                                        putExtra("restaurant_lat", restaurant.latitude)
-                                        putExtra("restaurant_lon", restaurant.longitude)
-                                        putExtra("restaurant_address", restaurant.address)
-                                    }
-                                    startActivity(intent)
-                                }
-                                .setNegativeButton("Abbrechen", null)
-                                .show()
+                            showRestaurantDialog(restaurant)
                             true
                         }
                     }
@@ -330,6 +307,219 @@ class MapFragment : Fragment() {
                 
             } catch (e: Exception) {
                 Log.e("MapFragment", "Error loading restaurants in bounds", e)
+            }
+        }
+    }
+    
+    private fun showRestaurantDialog(restaurant: Restaurant) {
+        lifecycleScope.launch {
+            // Lade alle Bewertungen für dieses Restaurant
+            val reviews = withContext(Dispatchers.IO) {
+                AppModule.reviewRepository.getAllReviews().first()
+                    .filter { it.restaurantId == restaurant.id }
+                    .sortedByDescending { it.visitDate }
+            }
+            
+            // Custom View für den Dialog erstellen
+            val dialogView = createRestaurantDialogView(restaurant, reviews)
+            
+            // Dialog anzeigen
+            val buttonText = if (reviews.isNotEmpty()) "Erneut bewerten" else "Bewertung abgeben"
+            val dialog = android.app.AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .setPositiveButton(buttonText) { _, _ ->
+                    val intent = Intent(requireContext(), AddReviewActivity::class.java).apply {
+                        putExtra("restaurant_id", restaurant.id)
+                        putExtra("restaurant_name", restaurant.name)
+                        putExtra("restaurant_lat", restaurant.latitude)
+                        putExtra("restaurant_lon", restaurant.longitude)
+                        putExtra("restaurant_address", restaurant.address)
+                    }
+                    startActivity(intent)
+                }
+                .setNegativeButton("Schließen", null)
+                .create()
+            
+            dialog.show()
+        }
+    }
+    
+    private fun createRestaurantDialogView(restaurant: Restaurant, reviews: List<com.myreviews.app.domain.model.Review>): View {
+        val context = requireContext()
+        val density = context.resources.displayMetrics.density
+        
+        return ScrollView(context).apply {
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(
+                    (24 * density).toInt(),
+                    (16 * density).toInt(),
+                    (24 * density).toInt(),
+                    (16 * density).toInt()
+                )
+                
+                // Restaurant Name (Titel)
+                addView(TextView(context).apply {
+                    text = restaurant.name
+                    textSize = 22f
+                    setTextColor(0xFF000000.toInt())
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                })
+                
+                // Adresse
+                addView(TextView(context).apply {
+                    text = restaurant.address
+                    textSize = 14f
+                    setTextColor(0xFF666666.toInt())
+                    setPadding(0, (4 * density).toInt(), 0, 0)
+                })
+                
+                // Separator
+                addView(View(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        (1 * density).toInt()
+                    ).apply {
+                        setMargins(0, (16 * density).toInt(), 0, (16 * density).toInt())
+                    }
+                    setBackgroundColor(0xFFE0E0E0.toInt())
+                })
+                
+                // Bewertungen Header
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    
+                    addView(TextView(context).apply {
+                        text = "Bewertungen"
+                        textSize = 18f
+                        setTextColor(0xFF000000.toInt())
+                        layoutParams = LinearLayout.LayoutParams(
+                            0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            1f
+                        )
+                    })
+                    
+                    // Durchschnitt und Anzahl
+                    if (reviews.isNotEmpty()) {
+                        val average = reviews.map { it.rating }.average()
+                        addView(TextView(context).apply {
+                            text = "⭐ %.1f".format(average)
+                            textSize = 16f
+                            setTextColor(0xFFFFB300.toInt())
+                            setPadding((8 * density).toInt(), 0, (8 * density).toInt(), 0)
+                        })
+                    }
+                    
+                    addView(TextView(context).apply {
+                        text = "(${reviews.size})"
+                        textSize = 16f
+                        setTextColor(0xFF999999.toInt())
+                    })
+                })
+                
+                // Bewertungen oder Platzhalter
+                if (reviews.isEmpty()) {
+                    addView(TextView(context).apply {
+                        text = "Noch keine Bewertungen vorhanden"
+                        textSize = 14f
+                        setTextColor(0xFF999999.toInt())
+                        setPadding(0, (16 * density).toInt(), 0, 0)
+                        setTypeface(null, android.graphics.Typeface.ITALIC)
+                    })
+                } else {
+                    // Bewertungsliste (max 3 sichtbar)
+                    val reviewContainer = LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(0, (12 * density).toInt(), 0, 0)
+                    }
+                    
+                    reviews.take(5).forEachIndexed { index, review ->
+                        if (index > 0) {
+                            // Separator zwischen Bewertungen
+                            reviewContainer.addView(View(context).apply {
+                                layoutParams = LinearLayout.LayoutParams(
+                                    LinearLayout.LayoutParams.MATCH_PARENT,
+                                    (1 * density).toInt()
+                                ).apply {
+                                    setMargins(0, (8 * density).toInt(), 0, (8 * density).toInt())
+                                }
+                                setBackgroundColor(0xFFF0F0F0.toInt())
+                            })
+                        }
+                        
+                        // Einzelne Bewertung
+                        reviewContainer.addView(createReviewItemView(context, review))
+                    }
+                    
+                    // ScrollView für Bewertungen wenn mehr als 3
+                    if (reviews.size > 3) {
+                        val scrollableReviews = ScrollView(context).apply {
+                            layoutParams = LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                (200 * density).toInt() // Max Höhe für 3 Einträge
+                            )
+                            addView(reviewContainer)
+                        }
+                        addView(scrollableReviews)
+                    } else {
+                        addView(reviewContainer)
+                    }
+                    
+                    // Hinweis wenn es mehr Bewertungen gibt
+                    if (reviews.size > 5) {
+                        addView(TextView(context).apply {
+                            text = "... und ${reviews.size - 5} weitere Bewertungen"
+                            textSize = 12f
+                            setTextColor(0xFF999999.toInt())
+                            setPadding(0, (8 * density).toInt(), 0, 0)
+                            setTypeface(null, android.graphics.Typeface.ITALIC)
+                        })
+                    }
+                }
+            })
+        }
+    }
+    
+    private fun createReviewItemView(context: Context, review: com.myreviews.app.domain.model.Review): View {
+        val density = context.resources.displayMetrics.density
+        
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            
+            // Rating und Datum
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                
+                // Sterne
+                addView(TextView(context).apply {
+                    text = "★".repeat(review.rating.toInt()) + "☆".repeat(5 - review.rating.toInt())
+                    textSize = 14f
+                    setTextColor(0xFFFFB300.toInt())
+                })
+                
+                // Datum
+                addView(TextView(context).apply {
+                    text = " • ${java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.GERMAN).format(review.visitDate)}"
+                    textSize = 12f
+                    setTextColor(0xFF999999.toInt())
+                })
+            })
+            
+            // Kommentar
+            if (review.comment.isNotEmpty()) {
+                addView(TextView(context).apply {
+                    text = review.comment
+                    textSize = 14f
+                    setTextColor(0xFF333333.toInt())
+                    setPadding(0, (4 * density).toInt(), 0, 0)
+                    maxLines = 3
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                })
             }
         }
     }
