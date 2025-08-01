@@ -26,6 +26,11 @@ class ReviewRepository(
         return reviewDao.getReviewById(reviewId)?.toDomainModel()
     }
     
+    suspend fun getReviewForRestaurant(restaurantId: Long): Review? {
+        // Hole die neueste Bewertung für dieses Restaurant
+        return reviewDao.getLatestReviewForRestaurant(restaurantId)?.toDomainModel()
+    }
+    
     suspend fun saveReview(
         restaurantId: Long,
         restaurantName: String,

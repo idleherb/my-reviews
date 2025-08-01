@@ -53,7 +53,8 @@ class AddReviewActivity : AppCompatActivity() {
             longitude = restaurantLon,
             address = restaurantAddress,
             averageRating = null,
-            reviewCount = 0
+            reviewCount = 0,
+            amenityType = intent.getStringExtra("restaurant_amenity_type") ?: "restaurant"
         )
         
         setupUI()

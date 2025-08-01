@@ -73,7 +73,8 @@ class NominatimSearchService : RestaurantSearchService {
                         }
                     }.ifEmpty { result.display_name },
                     averageRating = null,
-                    reviewCount = 0
+                    reviewCount = 0,
+                    amenityType = "restaurant" // Nominatim doesn't provide amenity type
                 )
             }
         } catch (e: Exception) {

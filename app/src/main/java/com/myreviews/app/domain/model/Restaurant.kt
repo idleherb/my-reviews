@@ -7,7 +7,8 @@ data class Restaurant(
     val longitude: Double,
     val address: String,
     val averageRating: Float? = null,
-    val reviewCount: Int = 0
+    val reviewCount: Int = 0,
+    val amenityType: String = "restaurant" // "restaurant", "cafe", "fast_food"
 ) {
     fun calculateAverageRating(ratings: List<Float>): Float {
         return if (ratings.isNotEmpty()) {

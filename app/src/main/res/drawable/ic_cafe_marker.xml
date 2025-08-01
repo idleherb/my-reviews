@@ -7,16 +7,16 @@
     
     <!-- Map pin background -->
     <path
-        android:fillColor="@color/md_theme_light_primary"
+        android:fillColor="@color/md_theme_light_secondary"
         android:pathData="M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13C19,5.13 15.87,2 12,2z" />
     
     <!-- White circle for icon background -->
     <path
-        android:fillColor="@color/md_theme_light_onPrimary"
+        android:fillColor="@color/md_theme_light_onSecondary"
         android:pathData="M12,4C9.24,4 7,6.24 7,9s2.24,5 5,5s5,-2.24 5,-5S14.76,4 12,4z" />
     
-    <!-- Simplified Restaurant icon (fork and knife) -->
+    <!-- Coffee cup icon -->
     <path
-        android:fillColor="@color/md_theme_light_primary"
-        android:pathData="M11,5.5L10,5.5L10,12L11,12L11,5.5ZM12,5.5L13,5.5L13,6.5L14,6.5L14,12L15,12L15,5L14,5L14,4L13,4L13,5L12,5L12,5.5Z" />
+        android:fillColor="@color/md_theme_light_secondary"
+        android:pathData="M9,6h6c0.55,0 1,0.45 1,1v3c0,1.66 -1.34,3 -3,3h-2c-1.66,0 -3,-1.34 -3,-3V7C8,6.45 8.45,6 9,6zM16,7v2h1c0.55,0 1,-0.45 1,-1s-0.45,-1 -1,-1H16zM9,13h6v1H9V13z" />
 </vector>

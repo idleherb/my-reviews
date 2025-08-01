@@ -209,11 +209,13 @@ class MapFragment : Fragment() {
                         snippet = restaurant.address
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         
-                        // Benutzerdefiniertes Restaurant-Icon
-                        icon = androidx.core.content.ContextCompat.getDrawable(
-                            requireContext(), 
-                            com.myreviews.app.R.drawable.ic_restaurant_marker
-                        )
+                        // Icon basierend auf amenity type
+                        val iconRes = when (restaurant.amenityType) {
+                            "cafe" -> com.myreviews.app.R.drawable.ic_cafe_marker
+                            "fast_food" -> com.myreviews.app.R.drawable.ic_fast_food_marker
+                            else -> com.myreviews.app.R.drawable.ic_restaurant_marker
+                        }
+                        icon = androidx.core.content.ContextCompat.getDrawable(requireContext(), iconRes)
                         
                         // Click-Listener für den Marker
                         setOnMarkerClickListener { marker, mapView ->
@@ -278,11 +280,13 @@ class MapFragment : Fragment() {
                         snippet = restaurant.address
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         
-                        // Benutzerdefiniertes Restaurant-Icon
-                        icon = androidx.core.content.ContextCompat.getDrawable(
-                            requireContext(), 
-                            com.myreviews.app.R.drawable.ic_restaurant_marker
-                        )
+                        // Icon basierend auf amenity type
+                        val iconRes = when (restaurant.amenityType) {
+                            "cafe" -> com.myreviews.app.R.drawable.ic_cafe_marker
+                            "fast_food" -> com.myreviews.app.R.drawable.ic_fast_food_marker
+                            else -> com.myreviews.app.R.drawable.ic_restaurant_marker
+                        }
+                        icon = androidx.core.content.ContextCompat.getDrawable(requireContext(), iconRes)
                         
                         // Click-Listener für den Marker
                         setOnMarkerClickListener { marker, mapView ->
@@ -334,6 +338,7 @@ class MapFragment : Fragment() {
                         putExtra("restaurant_lat", restaurant.latitude)
                         putExtra("restaurant_lon", restaurant.longitude)
                         putExtra("restaurant_address", restaurant.address)
+                        putExtra("restaurant_amenity_type", restaurant.amenityType)
                     }
                     startActivity(intent)
                 }

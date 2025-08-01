@@ -15,6 +15,9 @@ interface ReviewDao {
     @Query("SELECT * FROM reviews WHERE id = :reviewId")
     suspend fun getReviewById(reviewId: Long): ReviewEntity?
     
+    @Query("SELECT * FROM reviews WHERE restaurantId = :restaurantId ORDER BY visitDate DESC LIMIT 1")
+    suspend fun getLatestReviewForRestaurant(restaurantId: Long): ReviewEntity?
+    
     @Insert
     suspend fun insertReview(review: ReviewEntity): Long
     

@@ -93,7 +93,8 @@ class OverpassSearchService : RestaurantSearchService {
                             element.tags["addr:full"] ?: "Keine Adresse verfügbar" 
                         },
                         averageRating = null,
-                        reviewCount = 0
+                        reviewCount = 0,
+                        amenityType = element.tags["amenity"] ?: "restaurant"
                     )
                 } else null
             }
@@ -132,7 +133,8 @@ class OverpassSearchService : RestaurantSearchService {
                             longitude = element.lon,
                             address = element.tags["addr:street"] ?: "",
                             averageRating = null,
-                            reviewCount = 0
+                            reviewCount = 0,
+                            amenityType = element.tags["amenity"] ?: "restaurant"
                         )
                     }
                 } else null
@@ -189,7 +191,8 @@ class OverpassSearchService : RestaurantSearchService {
                             element.tags["addr:full"] ?: "Keine Adresse verfügbar" 
                         },
                         averageRating = null,
-                        reviewCount = 0
+                        reviewCount = 0,
+                        amenityType = element.tags["amenity"] ?: "restaurant"
                     )
                 } else null
             }
