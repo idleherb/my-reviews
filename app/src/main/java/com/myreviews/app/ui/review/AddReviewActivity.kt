@@ -4,11 +4,13 @@ import android.app.DatePickerDialog
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
 import com.myreviews.app.di.AppModule
 import com.myreviews.app.domain.model.Restaurant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -18,16 +20,24 @@ class AddReviewActivity : AppCompatActivity() {
     private lateinit var restaurantAddressText: TextView
     private lateinit var ratingBar: RatingBar
     private lateinit var commentEditText: EditText
-    private lateinit var visitDateButton: Button
-    private lateinit var saveButton: Button
-    private lateinit var cancelButton: Button
+    private lateinit var visitDateButton: MaterialButton
+    private lateinit var saveButton: MaterialButton
+    private lateinit var cancelButton: MaterialButton
     
     private lateinit var restaurant: Restaurant
     private var selectedDate: Date = Date()
     private val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMAN)
+    private var isEditMode = false
+    private var reviewId: Long = 0
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Prüfe ob Edit-Modus
+        isEditMode = intent.getBooleanExtra("edit_mode", false)
+        if (isEditMode) {
+            reviewId = intent.getLongExtra("review_id", 0)
+        }
         
         // Restaurant-Daten aus Intent holen
         val restaurantId = intent.getLongExtra("restaurant_id", -1)
@@ -48,6 +58,11 @@ class AddReviewActivity : AppCompatActivity() {
         
         setupUI()
         setupListeners()
+        
+        // Im Edit-Modus vorhandene Daten laden
+        if (isEditMode) {
+            loadExistingReviewData()
+        }
     }
     
     private fun setupUI() {
@@ -152,7 +167,7 @@ class AddReviewActivity : AppCompatActivity() {
             setPadding(0, 0, 0, 16)
         })
         
-        visitDateButton = Button(this).apply {
+        visitDateButton = MaterialButton(this).apply {
             text = dateFormatter.format(selectedDate)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -174,7 +189,7 @@ class AddReviewActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
         }
         
-        cancelButton = Button(this).apply {
+        cancelButton = MaterialButton(this).apply {
             text = "Abbrechen"
             layoutParams = LinearLayout.LayoutParams(
                 0,
@@ -186,7 +201,7 @@ class AddReviewActivity : AppCompatActivity() {
         }
         buttonLayout.addView(cancelButton)
         
-        saveButton = Button(this).apply {
+        saveButton = MaterialButton(this).apply {
             text = "Speichern"
             setBackgroundColor(0xFF4CAF50.toInt())
             setTextColor(0xFFFFFFFF.toInt())
@@ -206,7 +221,7 @@ class AddReviewActivity : AppCompatActivity() {
         setContentView(scrollView)
         
         // Titel setzen
-        title = "Bewertung hinzufügen"
+        title = if (isEditMode) "Bewertung bearbeiten" else "Bewertung hinzufügen"
     }
     
     private fun setupListeners() {
@@ -254,25 +269,49 @@ class AddReviewActivity : AppCompatActivity() {
             return
         }
         
-        // Bewertung speichern
+        // Bewertung speichern oder aktualisieren
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val reviewId = AppModule.reviewRepository.saveReview(
-                    restaurantId = restaurant.id,
-                    restaurantName = restaurant.name,
-                    restaurantLat = restaurant.latitude,
-                    restaurantLon = restaurant.longitude,
-                    restaurantAddress = restaurant.address,
-                    rating = rating,
-                    comment = comment,
-                    visitDate = selectedDate
-                )
-                
-                Toast.makeText(
-                    this@AddReviewActivity,
-                    "Bewertung gespeichert!",
-                    Toast.LENGTH_SHORT
-                ).show()
+                if (isEditMode) {
+                    // Bestehende Bewertung aktualisieren
+                    val existingReview = withContext(Dispatchers.IO) {
+                        AppModule.reviewRepository.getReviewById(reviewId)
+                    }
+                    existingReview?.let { review ->
+                        val updatedReview = review.copy(
+                            rating = rating,
+                            comment = comment,
+                            visitDate = selectedDate,
+                            updatedAt = Date()
+                        )
+                        withContext(Dispatchers.IO) {
+                            AppModule.reviewRepository.updateReview(updatedReview)
+                        }
+                        Toast.makeText(
+                            this@AddReviewActivity,
+                            "Bewertung aktualisiert!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    // Neue Bewertung speichern
+                    val reviewId = AppModule.reviewRepository.saveReview(
+                        restaurantId = restaurant.id,
+                        restaurantName = restaurant.name,
+                        restaurantLat = restaurant.latitude,
+                        restaurantLon = restaurant.longitude,
+                        restaurantAddress = restaurant.address,
+                        rating = rating,
+                        comment = comment,
+                        visitDate = selectedDate
+                    )
+                    
+                    Toast.makeText(
+                        this@AddReviewActivity,
+                        "Bewertung gespeichert!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
                 
                 finish()
             } catch (e: Exception) {
@@ -283,5 +322,18 @@ class AddReviewActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+    
+    private fun loadExistingReviewData() {
+        // Lade vorhandene Daten aus Intent
+        val existingRating = intent.getFloatExtra("existing_rating", 0f)
+        val existingComment = intent.getStringExtra("existing_comment") ?: ""
+        val existingVisitDate = intent.getLongExtra("existing_visit_date", Date().time)
+        
+        // UI mit vorhandenen Daten füllen
+        ratingBar.rating = existingRating
+        commentEditText.setText(existingComment)
+        selectedDate = Date(existingVisitDate)
+        visitDateButton.text = dateFormatter.format(selectedDate)
     }
 }

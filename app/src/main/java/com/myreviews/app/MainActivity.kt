@@ -13,6 +13,7 @@ import com.myreviews.app.di.ServiceLocator
 import com.myreviews.app.di.SearchServiceType
 import android.widget.LinearLayout
 import android.view.Menu
+import com.google.android.material.button.MaterialButton
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         headerLayout.addView(tabLayout)
         
         // API-Wechsel Button (kompakt mit nur Icon)
-        val apiButton = Button(this).apply {
+        val apiButton = MaterialButton(this).apply {
             text = "⋮"  // Drei-Punkte-Menü (vertikale Ellipse)
             textSize = 24f
             minWidth = 96  // 24dp in Pixel (bei 4x Density)
@@ -71,7 +72,8 @@ class MainActivity : AppCompatActivity() {
             }
             setOnClickListener {
                 // Direkt Einstellungen öffnen
-                val intent = Intent(this, com.myreviews.app.ui.settings.SettingsActivity::class.java)
+                Log.d("MainActivity", "3-Punkte-Button clicked - opening SettingsActivity directly")
+                val intent = Intent(this@MainActivity, com.myreviews.app.ui.settings.SettingsActivity::class.java)
                 startActivity(intent)
             }
         }
