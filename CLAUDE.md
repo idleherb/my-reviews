@@ -79,7 +79,56 @@ Entwicklung einer nativen Android-App für Restaurantbewertungen ohne Google-Die
 7. ✅ Dependency Injection mit AppModule
 8. ✅ Service-Umschaltung zwischen Overpass und Nominatim
 
-## Nächste Schritte
-1. SQLite-Datenbank für Bewertungen einrichten
-2. UI für Bewertungseingabe erstellen
-3. Backend API entwickeln
+## Nächste Schritte: Cloud-Synchronisation
+
+### Phase 1: Konfiguration in der App
+- [ ] Settings-Activity erstellen
+  - [ ] Layout mit Preferences/Einstellungen
+  - [ ] Toggle: "Cloud-Sync aktivieren"
+  - [ ] Eingabefeld: Server-URL (IP:Port)
+  - [ ] Test-Verbindung Button
+  - [ ] Speichern in SharedPreferences
+- [ ] Menü-Eintrag "Einstellungen" im 3-Punkte-Menü hinzufügen
+- [ ] Repository-Pattern erweitern für Offline/Online Modi
+
+### Phase 2: REST API Backend
+- [ ] Node.js/Express oder Python/FastAPI Setup
+- [ ] Endpoints implementieren:
+  - [ ] GET /api/reviews - Alle Bewertungen abrufen
+  - [ ] GET /api/reviews/:id - Einzelne Bewertung
+  - [ ] POST /api/reviews - Neue Bewertung
+  - [ ] PUT /api/reviews/:id - Bewertung aktualisieren
+  - [ ] DELETE /api/reviews/:id - Bewertung löschen
+  - [ ] GET /api/sync - Sync-Status
+- [ ] PostgreSQL Datenbank-Schema
+- [ ] Fehlerbehandlung
+- [ ] CORS für Android App
+
+### Phase 3: Sync-Mechanismus
+- [ ] SyncAdapter oder WorkManager für Android
+- [ ] Konfliktauflösung (wenn offline bearbeitet)
+- [ ] Sync-Status in UI anzeigen
+- [ ] Offline-Queue für pending operations
+- [ ] Retry-Mechanismus bei Netzwerkfehlern
+
+### Phase 4: Docker Deployment
+- [ ] Dockerfile für Backend
+- [ ] docker-compose.yml mit:
+  - [ ] Backend-Service
+  - [ ] PostgreSQL
+  - [ ] Optional: Nginx Reverse Proxy
+- [ ] Environment Variables für Konfiguration
+- [ ] Volume für Datenbank-Persistenz
+- [ ] Backup-Strategie
+
+### Phase 5: Sicherheit & Extras
+- [ ] HTTPS mit Let's Encrypt
+- [ ] Optional: Basis-Authentifizierung
+- [ ] API Rate Limiting
+- [ ] Logging & Monitoring
+
+### Noch offene Features
+- [ ] Dark Mode implementieren
+- [ ] Export/Import von Bewertungen
+- [ ] Bewertungen bearbeiten/löschen in der App
+- [ ] Fotos zu Bewertungen hinzufügen

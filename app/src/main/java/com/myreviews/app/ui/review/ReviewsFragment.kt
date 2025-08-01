@@ -52,14 +52,6 @@ class ReviewsFragment : Fragment() {
         
         loadReviews()
         
-        // Click Listener für die Items
-        listView.setOnItemClickListener { _, _, position, _ ->
-            val adapter = listView.adapter as? ReviewAdapter
-            adapter?.getItem(position)?.let { review ->
-                navigateToRestaurantOnMap(review)
-            }
-        }
-        
         return layout
     }
     
@@ -97,6 +89,11 @@ class ReviewsFragment : Fragment() {
                 isClickable = true
                 isFocusable = true
                 setBackgroundResource(android.R.drawable.list_selector_background)
+                
+                // Direkt Click-Listener auf das Item
+                setOnClickListener {
+                    this@ReviewsFragment.navigateToRestaurantOnMap(review)
+                }
             }
             
             // Restaurant Name
