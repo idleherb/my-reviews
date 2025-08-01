@@ -197,24 +197,57 @@ data class Review(
 3. ✅ CurrentUser in User-Tabelle (isCurrentUser flag)
 4. ✅ AppModule erweitert mit UserRepository
 
-#### Phase 3: UI-Anpassungen ⏳
+#### Phase 3: UI-Anpassungen ✅
 1. Settings erweitern:
-   - ⏳ Benutzername-Eingabefeld
-   - ⏳ Anzeige der User-ID (optional)
+   - ✅ Benutzername-Eingabefeld
+   - ✅ Anzeige der User-ID
+   - ✅ Dialog bei Cloud-Sync wenn noch anonym
+   - ✅ Automatisches Update aller Reviews bei Namensänderung
 2. ReviewsFragment:
-   - ⏳ Username bei Reviews anzeigen (wenn nicht eigene)
+   - ⏳ Username bei Reviews anzeigen (wenn Multi-User aktiv)
 3. AddReviewActivity:
    - ✅ UserId und UserName werden automatisch über Repository gesetzt
 
-#### Phase 4: Sync-Vorbereitung
+#### Phase 4: Sync-Vorbereitung ✅
 1. Bei Username-Änderung:
-   - Alle lokalen Reviews updaten
-   - Flag für Sync setzen
+   - ✅ Alle lokalen Reviews updaten
+   - ⏳ Flag für Sync setzen
 2. Cloud-Sync Dialog:
-   - "Wie möchtest du erscheinen?" wenn noch Anonym
+   - ✅ "Wie möchtest du erscheinen?" wenn noch Anonym
 3. API-Endpoints vorbereiten:
-   - User-Registrierung/Update
-   - Reviews mit User-Daten
+   - ⏳ User-Registrierung/Update
+   - ⏳ Reviews mit User-Daten
+
+### Implementierungsdetails
+
+#### Benutzer-System
+- **UUID-basiert**: Jeder Nutzer erhält eine eindeutige UUID, die nie geändert wird
+- **Privacy by default**: App startet mit "Anonym" als Benutzername
+- **Flexibel**: Benutzername kann jederzeit geändert werden
+- **Konsistent**: Bei Namensänderung werden alle Reviews automatisch aktualisiert
+
+#### Settings-Dialog
+- **Benutzer-Section** ganz oben mit:
+  - Eingabefeld für Benutzername
+  - Anzeige der User-ID (klein, grau)
+- **Cloud-Sync Aktivierung**:
+  - Dialog wenn noch anonym: "Möchtest du einen Namen festlegen?"
+  - Bestätigung bei Namensänderung während aktivem Sync
+
+#### Datenbank-Schema
+```sql
+-- Users Tabelle
+CREATE TABLE users (
+    userId TEXT NOT NULL PRIMARY KEY,
+    userName TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    isCurrentUser INTEGER NOT NULL
+);
+
+-- Reviews erweitert um:
+ALTER TABLE reviews ADD COLUMN userId TEXT NOT NULL;
+ALTER TABLE reviews ADD COLUMN userName TEXT NOT NULL;
+```
 
 ### Noch offene Features
 - [ ] Export/Import von Bewertungen
