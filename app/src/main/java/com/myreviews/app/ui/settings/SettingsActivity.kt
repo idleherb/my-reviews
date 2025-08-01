@@ -8,6 +8,8 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.button.MaterialButton
+import android.graphics.drawable.Drawable
+import androidx.core.content.ContextCompat
 import com.myreviews.app.di.ServiceLocator
 import com.myreviews.app.di.SearchServiceType
 import kotlinx.coroutines.CoroutineScope
@@ -73,13 +75,48 @@ class SettingsActivity : AppCompatActivity() {
             setPadding(padding, padding, padding, padding)
         }
         
-        // Titel
-        layout.addView(TextView(this).apply {
-            text = "Einstellungen"
-            textSize = 24f
+        // Header mit Titel und Close-Button
+        val headerLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
             val bottomPadding = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_xl)
             setPadding(0, 0, 0, bottomPadding)
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        
+        // Titel
+        headerLayout.addView(TextView(this).apply {
+            text = "Einstellungen"
+            textSize = 24f
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
         })
+        
+        // Close Button (rechts)
+        val closeButton = ImageButton(this).apply {
+            val closeIcon = ContextCompat.getDrawable(this@SettingsActivity, com.myreviews.app.R.drawable.ic_close)
+            closeIcon?.setTint(0xFF666666.toInt()) // Subtiles Grau
+            setImageDrawable(closeIcon)
+            background = null
+            layoutParams = LinearLayout.LayoutParams(
+                resources.getDimensionPixelSize(com.myreviews.app.R.dimen.touch_target_min),
+                resources.getDimensionPixelSize(com.myreviews.app.R.dimen.touch_target_min)
+            )
+            scaleType = ImageView.ScaleType.CENTER
+            contentDescription = "Schließen"
+            setOnClickListener {
+                finish()
+            }
+        }
+        headerLayout.addView(closeButton)
+        
+        layout.addView(headerLayout)
         
         // API-Auswahl Section
         layout.addView(TextView(this).apply {
@@ -217,9 +254,8 @@ class SettingsActivity : AppCompatActivity() {
         
         setContentView(mainLayout)
         
-        // Action Bar
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = "Einstellungen"
+        // Action Bar verstecken, da wir einen eigenen Close-Button haben
+        supportActionBar?.hide()
     }
     
     private fun loadSettings() {

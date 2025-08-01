@@ -24,30 +24,53 @@ object MarkerIconHelper {
         
         val centerX = width / 2f
         val centerY = height * 0.35f
+        val circleRadius = width * 0.42f
         
-        // Draw pin shape
+        // Draw filled pin shape
         val pinPath = Path().apply {
-            moveTo(centerX, height.toFloat()) // Bottom point
-            cubicTo(
-                width * 0.2f, height * 0.65f,  // Control point 1
-                0f, centerY + height * 0.15f,   // Control point 2
-                0f, centerY                      // Left side
+            // Start at the bottom point
+            moveTo(centerX, height.toFloat())
+            
+            // Calculate tangent points where pin meets circle
+            val angle = Math.asin((circleRadius * 0.7) / (height - centerY).toDouble()).toFloat()
+            val tangentX = circleRadius * Math.sin(angle.toDouble()).toFloat()
+            val tangentY = circleRadius * Math.cos(angle.toDouble()).toFloat()
+            
+            // Left side of pin
+            lineTo(centerX - tangentX, centerY + tangentY)
+            
+            // Arc around the circle (counter-clockwise from left tangent to right tangent)
+            val startAngle = Math.toDegrees(angle.toDouble()).toFloat() + 90
+            val sweepAngle = 360 - (2 * Math.toDegrees(angle.toDouble()).toFloat())
+            arcTo(
+                centerX - circleRadius,
+                centerY - circleRadius,
+                centerX + circleRadius,
+                centerY + circleRadius,
+                startAngle,
+                sweepAngle,
+                false
             )
-            addCircle(centerX, centerY, width * 0.45f, Path.Direction.CW)
-            cubicTo(
-                width.toFloat(), centerY + height * 0.15f, // Control point 1
-                width * 0.8f, height * 0.65f,    // Control point 2
-                centerX, height.toFloat()         // Bottom point
-            )
+            
+            // Right side of pin back to bottom
+            lineTo(centerX, height.toFloat())
+            close()
         }
         
         paint.color = backgroundColor
         paint.style = Paint.Style.FILL
         canvas.drawPath(pinPath, paint)
         
+        // Draw thinner border ring
+        paint.color = backgroundColor
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = dpToPx(context, 1.5f).toFloat()
+        canvas.drawCircle(centerX, centerY, circleRadius - paint.strokeWidth / 2, paint)
+        
         // Draw white circle for icon background
         paint.color = Color.WHITE
-        canvas.drawCircle(centerX, centerY, width * 0.35f, paint)
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(centerX, centerY, width * 0.32f, paint)
         
         // Draw icon
         textPaint.textSize = width * 0.4f

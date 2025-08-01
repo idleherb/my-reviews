@@ -127,8 +127,97 @@ Entwicklung einer nativen Android-App für Restaurantbewertungen ohne Google-Die
 - [ ] API Rate Limiting
 - [ ] Logging & Monitoring
 
+### Implementierte Features (Phase 2)
+- ✅ Settings-Activity mit Server-Konfiguration
+- ✅ Tab-Navigation erweitert (Karte/Suche/Bewertungen)
+- ✅ Bewertungen bearbeiten/löschen im Bewertungstab
+- ✅ Such- und Sortierfunktion im Bewertungstab
+- ✅ Dark Mode (automatisch mit Material Design 3)
+- ✅ Material Design 3 vollständig implementiert
+  - ✅ Farbsystem
+  - ✅ Typography Scale
+  - ✅ Elevation & Schatten
+  - ✅ 8dp Grid System
+- ✅ Material Icon Font für Map Marker
+- ✅ My Location Button
+- ✅ Close Button im Settings Dialog
+
+## Multi-User Support Implementation (Aktuell)
+
+### Konzept
+- Jeder Nutzer erhält eine eindeutige UUID
+- Username kann geändert werden, UUID bleibt konstant
+- Privacy by default: Startet mit "Anonym"
+- Bei Cloud-Sync kann Username festgelegt werden
+
+### Datenmodell-Änderungen
+
+#### 1. User Entity (NEU)
+```kotlin
+@Entity(tableName = "users")
+data class User(
+    @PrimaryKey
+    val userId: String,      // UUID
+    val userName: String,    // Anzeigename (änderbar)
+    val createdAt: Long,     // Timestamp
+    val isCurrentUser: Boolean // Markiert den aktiven User
+)
+```
+
+#### 2. Review Entity (ERWEITERT)
+```kotlin
+@Entity(tableName = "reviews")
+data class Review(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val restaurantId: Long,
+    val rating: Float,
+    val comment: String,
+    val visitDate: Date,
+    val createdAt: Long,
+    val userId: String,      // NEU: User UUID
+    val userName: String     // NEU: Username zum Zeitpunkt der Review
+)
+```
+
+### Implementierungsschritte
+
+#### Phase 1: Datenbank-Migration ⏳
+1. Room Database Version erhöhen (1 → 2)
+2. Migration schreiben:
+   - User-Tabelle erstellen
+   - Review-Tabelle um userId und userName erweitern
+   - Default-User für existierende Reviews erstellen
+3. UserDao implementieren
+4. ReviewDao anpassen
+
+#### Phase 2: User-Management
+1. UserRepository erstellen
+2. UUID-Generator beim ersten App-Start
+3. CurrentUser in SharedPreferences speichern
+4. UserViewModel für Settings
+
+#### Phase 3: UI-Anpassungen
+1. Settings erweitern:
+   - Benutzername-Eingabefeld
+   - Anzeige der User-ID (optional)
+2. ReviewsFragment:
+   - Username bei Reviews anzeigen (wenn nicht eigene)
+3. AddReviewActivity:
+   - UserId und UserName automatisch setzen
+
+#### Phase 4: Sync-Vorbereitung
+1. Bei Username-Änderung:
+   - Alle lokalen Reviews updaten
+   - Flag für Sync setzen
+2. Cloud-Sync Dialog:
+   - "Wie möchtest du erscheinen?" wenn noch Anonym
+3. API-Endpoints vorbereiten:
+   - User-Registrierung/Update
+   - Reviews mit User-Daten
+
 ### Noch offene Features
-- [ ] Dark Mode implementieren
 - [ ] Export/Import von Bewertungen
-- [ ] Bewertungen bearbeiten/löschen in der App
 - [ ] Fotos zu Bewertungen hinzufügen
+- [ ] Multi-Device Support (gleiche UUID)
+- [ ] Weitere User-Features (Avatar, etc.)

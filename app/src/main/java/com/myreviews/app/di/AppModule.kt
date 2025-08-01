@@ -5,6 +5,8 @@ import com.myreviews.app.data.api.RestaurantSearchService
 import com.myreviews.app.data.api.OverpassSearchService
 import com.myreviews.app.data.api.NominatimSearchService
 import com.myreviews.app.data.repository.RestaurantRepository
+import com.myreviews.app.data.repository.UserRepository
+import com.myreviews.app.data.repository.ReviewRepository
 import com.myreviews.app.data.database.AppDatabase
 import com.myreviews.app.data.preferences.AppPreferences
 
@@ -36,8 +38,13 @@ object AppModule {
     val restaurantRepository: RestaurantRepository
         get() = RestaurantRepository(searchService)
     
-    // Review Repository
-    val reviewRepository: com.myreviews.app.data.repository.ReviewRepository by lazy {
-        com.myreviews.app.data.repository.ReviewRepository(database.reviewDao())
+    // User Repository
+    val userRepository: UserRepository by lazy {
+        UserRepository(database.userDao())
+    }
+    
+    // Review Repository (jetzt mit UserRepository)
+    val reviewRepository: ReviewRepository by lazy {
+        ReviewRepository(database.reviewDao(), userRepository)
     }
 }

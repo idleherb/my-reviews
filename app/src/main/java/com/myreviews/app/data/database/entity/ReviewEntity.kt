@@ -17,5 +17,7 @@ data class ReviewEntity(
     val comment: String,
     val visitDate: Date,
     val createdAt: Date = Date(),
-    val updatedAt: Date = Date()
+    val updatedAt: Date = Date(),
+    val userId: String = "",     // User UUID
+    val userName: String = "Anonym" // Username zum Zeitpunkt der Review
 )

@@ -32,4 +32,7 @@ interface ReviewDao {
     
     @Query("SELECT COUNT(*) FROM reviews WHERE restaurantId = :restaurantId")
     suspend fun getReviewCountForRestaurant(restaurantId: Long): Int
+    
+    @Query("UPDATE reviews SET userName = :newUserName WHERE userId = :userId")
+    suspend fun updateUserNameInReviews(userId: String, newUserName: String)
 }

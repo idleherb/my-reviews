@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.map
 import java.util.Date
 
 class ReviewRepository(
-    private val reviewDao: ReviewDao
+    private val reviewDao: ReviewDao,
+    private val userRepository: UserRepository
 ) {
     fun getAllReviews(): Flow<List<Review>> {
         return reviewDao.getAllReviews().map { entities ->
@@ -41,6 +42,9 @@ class ReviewRepository(
         comment: String,
         visitDate: Date
     ): Long {
+        // Hole aktuellen User
+        val currentUser = userRepository.ensureDefaultUser()
+        
         val entity = ReviewEntity(
             restaurantId = restaurantId,
             restaurantName = restaurantName,
@@ -49,7 +53,9 @@ class ReviewRepository(
             restaurantAddress = restaurantAddress,
             rating = rating,
             comment = comment,
-            visitDate = visitDate
+            visitDate = visitDate,
+            userId = currentUser.userId,
+            userName = currentUser.userName
         )
         return reviewDao.insertReview(entity)
     }
@@ -60,6 +66,11 @@ class ReviewRepository(
     
     suspend fun deleteReview(review: Review) {
         reviewDao.deleteReview(review.toEntity())
+    }
+    
+    suspend fun updateUserNameInReviews(userId: String, newUserName: String) {
+        // Aktualisiere alle Reviews eines Users mit dem neuen Namen
+        reviewDao.updateUserNameInReviews(userId, newUserName)
     }
     
     suspend fun getRestaurantStats(restaurantId: Long): RestaurantStats {

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base Widget Style -->
+    <style name="Widget.MyReviews" parent="android:Widget">
+    </style>
+    
     <!-- Material Design Elevation Styles -->
     
     <!-- Card Style with elevation -->
@@ -52,34 +56,33 @@
         <item name="cornerSizeBottomRight">0dp</item>
     </style>
     
+    <!-- Base Surface Style -->
+    <style name="Widget.MyReviews.Surface">
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+    
     <!-- Surface Styles with different elevations -->
-    <style name="Widget.MyReviews.Surface.Level0">
+    <style name="Widget.MyReviews.Surface.Level0" parent="Widget.MyReviews.Surface">
         <item name="android:elevation">0dp</item>
-        <item name="android:background">?attr/colorSurface</item>
     </style>
     
-    <style name="Widget.MyReviews.Surface.Level1">
+    <style name="Widget.MyReviews.Surface.Level1" parent="Widget.MyReviews.Surface">
         <item name="android:elevation">1dp</item>
-        <item name="android:background">?attr/colorSurface</item>
     </style>
     
-    <style name="Widget.MyReviews.Surface.Level2">
+    <style name="Widget.MyReviews.Surface.Level2" parent="Widget.MyReviews.Surface">
         <item name="android:elevation">3dp</item>
-        <item name="android:background">?attr/colorSurface</item>
     </style>
     
-    <style name="Widget.MyReviews.Surface.Level3">
+    <style name="Widget.MyReviews.Surface.Level3" parent="Widget.MyReviews.Surface">
         <item name="android:elevation">6dp</item>
-        <item name="android:background">?attr/colorSurface</item>
     </style>
     
-    <style name="Widget.MyReviews.Surface.Level4">
+    <style name="Widget.MyReviews.Surface.Level4" parent="Widget.MyReviews.Surface">
         <item name="android:elevation">8dp</item>
-        <item name="android:background">?attr/colorSurface</item>
     </style>
     
-    <style name="Widget.MyReviews.Surface.Level5">
+    <style name="Widget.MyReviews.Surface.Level5" parent="Widget.MyReviews.Surface">
         <item name="android:elevation">12dp</item>
-        <item name="android:background">?attr/colorSurface</item>
     </style>
 </resources>
