@@ -182,29 +182,29 @@ data class Review(
 
 ### Implementierungsschritte
 
-#### Phase 1: Datenbank-Migration ⏳
-1. Room Database Version erhöhen (1 → 2)
-2. Migration schreiben:
-   - User-Tabelle erstellen
-   - Review-Tabelle um userId und userName erweitern
-   - Default-User für existierende Reviews erstellen
-3. UserDao implementieren
-4. ReviewDao anpassen
+#### Phase 1: Datenbank-Migration ✅
+1. ✅ Room Database Version erhöhen (1 → 2)
+2. ✅ Migration schreiben:
+   - ✅ User-Tabelle erstellen
+   - ✅ Review-Tabelle um userId und userName erweitern
+   - ✅ Default-User für existierende Reviews erstellen
+3. ✅ UserDao implementieren
+4. ✅ ReviewDao anpassen (inkl. updateUserNameInReviews)
 
-#### Phase 2: User-Management
-1. UserRepository erstellen
-2. UUID-Generator beim ersten App-Start
-3. CurrentUser in SharedPreferences speichern
-4. UserViewModel für Settings
+#### Phase 2: User-Management ✅
+1. ✅ UserRepository erstellen
+2. ✅ UUID-Generator beim ersten App-Start (in ensureDefaultUser)
+3. ✅ CurrentUser in User-Tabelle (isCurrentUser flag)
+4. ✅ AppModule erweitert mit UserRepository
 
-#### Phase 3: UI-Anpassungen
+#### Phase 3: UI-Anpassungen ⏳
 1. Settings erweitern:
-   - Benutzername-Eingabefeld
-   - Anzeige der User-ID (optional)
+   - ⏳ Benutzername-Eingabefeld
+   - ⏳ Anzeige der User-ID (optional)
 2. ReviewsFragment:
-   - Username bei Reviews anzeigen (wenn nicht eigene)
+   - ⏳ Username bei Reviews anzeigen (wenn nicht eigene)
 3. AddReviewActivity:
-   - UserId und UserName automatisch setzen
+   - ✅ UserId und UserName werden automatisch über Repository gesetzt
 
 #### Phase 4: Sync-Vorbereitung
 1. Bei Username-Änderung:

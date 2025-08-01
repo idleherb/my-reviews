@@ -12,10 +12,13 @@ import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
 import com.myreviews.app.di.ServiceLocator
 import com.myreviews.app.di.SearchServiceType
+import com.myreviews.app.di.AppModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -29,9 +32,12 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var statusTextView: TextView
     private lateinit var overpassRadioButton: RadioButton
     private lateinit var nominatimRadioButton: RadioButton
+    private lateinit var userNameEditText: EditText
+    private lateinit var userIdTextView: TextView
     
     private lateinit var sharedPrefs: SharedPreferences
     private var connectionTestPassed = false
+    private var currentUserId: String = ""
     
     companion object {
         const val PREFS_NAME = "MyReviewsPrefs"
@@ -117,6 +123,49 @@ class SettingsActivity : AppCompatActivity() {
         headerLayout.addView(closeButton)
         
         layout.addView(headerLayout)
+        
+        // Benutzer Section
+        layout.addView(TextView(this).apply {
+            text = "Benutzer"
+            textSize = 18f
+            setPadding(0, 0, 0, 16)
+        })
+        
+        // Benutzername
+        layout.addView(TextView(this).apply {
+            text = "Dein Name"
+            textSize = 14f
+            setPadding(0, 0, 0, 8)
+        })
+        
+        userNameEditText = EditText(this).apply {
+            hint = "Anonym"
+            setSingleLine()
+            setBackgroundResource(android.R.drawable.edit_text)
+            val editPadding = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_md)
+            setPadding(editPadding, editPadding, editPadding, editPadding)
+        }
+        layout.addView(userNameEditText)
+        
+        // User ID (klein und grau)
+        userIdTextView = TextView(this).apply {
+            textSize = 12f
+            setTextColor(0xFF999999.toInt())
+            setPadding(0, 8, 0, 0)
+        }
+        layout.addView(userIdTextView)
+        
+        // Trennlinie
+        layout.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                2
+            ).apply {
+                topMargin = 32
+                bottomMargin = 32
+            }
+            setBackgroundColor(0xFFDDDDDD.toInt())
+        })
         
         // API-Auswahl Section
         layout.addView(TextView(this).apply {
@@ -259,6 +308,14 @@ class SettingsActivity : AppCompatActivity() {
     }
     
     private fun loadSettings() {
+        // User-Daten laden
+        lifecycleScope.launch {
+            val currentUser = AppModule.userRepository.ensureDefaultUser()
+            currentUserId = currentUser.userId
+            userNameEditText.setText(currentUser.userName)
+            userIdTextView.text = "ID: ${currentUser.userId}"
+        }
+        
         // API-Auswahl laden
         when (ServiceLocator.currentSearchService) {
             SearchServiceType.OVERPASS -> overpassRadioButton.isChecked = true
@@ -283,6 +340,20 @@ class SettingsActivity : AppCompatActivity() {
             if (!isChecked) {
                 connectionTestPassed = false
                 statusTextView.text = ""
+            } else {
+                // Prüfe ob Benutzername noch Anonym ist
+                val currentName = userNameEditText.text.toString().trim()
+                if (currentName.isEmpty() || currentName == "Anonym") {
+                    android.app.AlertDialog.Builder(this)
+                        .setTitle("Benutzername festlegen")
+                        .setMessage("Möchtest du einen Namen für deine Bewertungen festlegen? Dies hilft, deine Bewertungen beim Cloud-Sync zu identifizieren.")
+                        .setPositiveButton("Name eingeben") { _, _ ->
+                            userNameEditText.requestFocus()
+                            userNameEditText.selectAll()
+                        }
+                        .setNegativeButton("Anonym bleiben", null)
+                        .show()
+                }
             }
             updateUIState()
         }
@@ -392,21 +463,44 @@ class SettingsActivity : AppCompatActivity() {
     }
     
     private fun saveSettings() {
-        // API-Auswahl speichern
-        when {
-            overpassRadioButton.isChecked -> ServiceLocator.switchToOverpass()
-            nominatimRadioButton.isChecked -> ServiceLocator.switchToNominatim()
+        lifecycleScope.launch {
+            // Benutzername speichern
+            val newUserName = userNameEditText.text.toString().trim().ifEmpty { "Anonym" }
+            val currentUser = AppModule.userRepository.getCurrentUser()
+            
+            if (currentUser != null && currentUser.userName != newUserName) {
+                // Username hat sich geändert
+                AppModule.userRepository.updateUserName(currentUser.userId, newUserName)
+                
+                // Alle Reviews dieses Users aktualisieren
+                AppModule.reviewRepository.updateUserNameInReviews(currentUser.userId, newUserName)
+                
+                // Bei Cloud-Sync: Dialog zeigen
+                if (cloudSyncSwitch.isChecked && currentUser.userName == "Anonym" && newUserName != "Anonym") {
+                    android.app.AlertDialog.Builder(this@SettingsActivity)
+                        .setTitle("Benutzername für Cloud-Sync")
+                        .setMessage("Deine Bewertungen werden jetzt mit dem Namen '$newUserName' synchronisiert.")
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+            }
+            
+            // API-Auswahl speichern
+            when {
+                overpassRadioButton.isChecked -> ServiceLocator.switchToOverpass()
+                nominatimRadioButton.isChecked -> ServiceLocator.switchToNominatim()
+            }
+            
+            // Cloud-Sync Einstellungen speichern
+            val editor = sharedPrefs.edit()
+            editor.putBoolean(KEY_CLOUD_SYNC_ENABLED, cloudSyncSwitch.isChecked)
+            editor.putString(KEY_SERVER_URL, serverUrlEditText.text.toString().trim())
+            editor.putString(KEY_SERVER_PORT, serverPortEditText.text.toString().trim())
+            editor.apply()
+            
+            Toast.makeText(this@SettingsActivity, "Einstellungen gespeichert", Toast.LENGTH_SHORT).show()
+            finish()
         }
-        
-        // Cloud-Sync Einstellungen speichern
-        val editor = sharedPrefs.edit()
-        editor.putBoolean(KEY_CLOUD_SYNC_ENABLED, cloudSyncSwitch.isChecked)
-        editor.putString(KEY_SERVER_URL, serverUrlEditText.text.toString().trim())
-        editor.putString(KEY_SERVER_PORT, serverPortEditText.text.toString().trim())
-        editor.apply()
-        
-        Toast.makeText(this, "Einstellungen gespeichert", Toast.LENGTH_SHORT).show()
-        finish()
     }
     
     override fun onSupportNavigateUp(): Boolean {
