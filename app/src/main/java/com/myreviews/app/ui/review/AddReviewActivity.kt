@@ -76,7 +76,7 @@ class AddReviewActivity : AppCompatActivity() {
         // Restaurant Info
         val restaurantInfoCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 24, 24, 24)
+            setPadding(0, 0, 0, 16) // Nur unten Abstand, gleiche Einrückung wie Rest
             // Kein Hintergrund - verwende Standard-Theme-Background
         }
         
@@ -159,12 +159,25 @@ class AddReviewActivity : AppCompatActivity() {
             )
         })
         
-        // Besuchsdatum
-        layout.addView(TextView(this).apply {
-            text = "Besuchsdatum"
+        // Besuchsdatum (horizontal Layout für Effizienz)
+        val dateLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        
+        dateLayout.addView(TextView(this).apply {
+            text = "Besuchsdatum:"
             textSize = 16f
             setTextColor(0xFF000000.toInt())
-            setPadding(0, 0, 0, 16)
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+            gravity = android.view.Gravity.CENTER_VERTICAL
         })
         
         visitDateButton = MaterialButton(this).apply {
@@ -176,11 +189,12 @@ class AddReviewActivity : AppCompatActivity() {
             theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true)
             setTextColor(typedValue.data)
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
-        layout.addView(visitDateButton)
+        dateLayout.addView(visitDateButton)
+        layout.addView(dateLayout)
         
         // Abstand
         layout.addView(Space(this).apply {
