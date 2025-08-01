@@ -56,19 +56,28 @@ class MainActivity : AppCompatActivity() {
         
         // API-Wechsel Button (kompakt mit nur Icon)
         val apiButton = MaterialButton(this).apply {
-            text = "⋮"  // Drei-Punkte-Menü (vertikale Ellipse)
+            // Material Design More Vert Icon
+            val typeface = androidx.core.content.res.ResourcesCompat.getFont(
+                this@MainActivity, 
+                R.font.material_icons_regular
+            )
+            setTypeface(typeface)
+            text = "\uE5D4"  // Material Design more_vert icon
             textSize = 24f
-            minWidth = 96  // 24dp in Pixel (bei 4x Density)
-            minHeight = 0
-            minimumWidth = 96
-            minimumHeight = 0
-            setPadding(0, 0, 0, 0)  // Kein internes Padding
-            background = null  // Kein Hintergrund
+            minWidth = resources.getDimensionPixelSize(R.dimen.touch_target_min)
+            minHeight = resources.getDimensionPixelSize(R.dimen.touch_target_min)
+            minimumWidth = resources.getDimensionPixelSize(R.dimen.touch_target_min)
+            minimumHeight = resources.getDimensionPixelSize(R.dimen.touch_target_min)
+            setPadding(0, 0, 0, 0)
+            background = null
             layoutParams = LinearLayout.LayoutParams(
-                96,  // 24dp * 4 = 96 Pixel bei xxhdpi
+                resources.getDimensionPixelSize(R.dimen.touch_target_min),
                 LinearLayout.LayoutParams.MATCH_PARENT
             ).apply {
-                setMargins(16, 0, 16, 0)  // Mehr Abstand außen für bessere Touch-Erfahrung
+                setMargins(
+                    resources.getDimensionPixelSize(R.dimen.spacing_md), 0,
+                    resources.getDimensionPixelSize(R.dimen.spacing_md), 0
+                )
             }
             setOnClickListener {
                 // Direkt Einstellungen öffnen
