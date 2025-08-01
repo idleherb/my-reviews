@@ -21,6 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.first
 import java.net.HttpURLConnection
 import java.net.URL
+import com.myreviews.app.data.api.SyncResult
 
 class SettingsActivity : AppCompatActivity() {
     
@@ -34,6 +35,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var nominatimRadioButton: RadioButton
     private lateinit var userNameEditText: EditText
     private lateinit var userIdTextView: TextView
+    private lateinit var syncButton: MaterialButton
     
     private lateinit var sharedPrefs: SharedPreferences
     private var connectionTestPassed = false
@@ -286,9 +288,9 @@ class SettingsActivity : AppCompatActivity() {
         scrollView.addView(layout)
         mainLayout.addView(scrollView)
         
-        // Speichern Button außerhalb der ScrollView am unteren Rand
-        saveButton = MaterialButton(this).apply {
-            text = "Einstellungen speichern"
+        // Buttons außerhalb der ScrollView am unteren Rand
+        val buttonLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -299,7 +301,41 @@ class SettingsActivity : AppCompatActivity() {
                 setMargins(marginLR, marginTop, marginLR, marginBottom)
             }
         }
-        mainLayout.addView(saveButton)
+        
+        // Sync Button (nur wenn Cloud-Sync aktiviert)
+        val syncButton = MaterialButton(this).apply {
+            text = "Jetzt synchronisieren"
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            ).apply {
+                rightMargin = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_md)
+            }
+            visibility = if (cloudSyncSwitch.isChecked) View.VISIBLE else View.GONE
+        }
+        
+        syncButton.setOnClickListener {
+            performSync()
+        }
+        
+        buttonLayout.addView(syncButton)
+        
+        // Speichern Button
+        saveButton = MaterialButton(this).apply {
+            text = "Einstellungen speichern"
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        }
+        buttonLayout.addView(saveButton)
+        
+        mainLayout.addView(buttonLayout)
+        
+        // Store sync button reference for visibility updates
+        this.syncButton = syncButton
         
         setContentView(mainLayout)
         
@@ -324,8 +360,10 @@ class SettingsActivity : AppCompatActivity() {
         
         // Cloud-Sync Einstellungen laden
         cloudSyncSwitch.isChecked = sharedPrefs.getBoolean(KEY_CLOUD_SYNC_ENABLED, false)
-        serverUrlEditText.setText(sharedPrefs.getString(KEY_SERVER_URL, ""))
-        serverPortEditText.setText(sharedPrefs.getString(KEY_SERVER_PORT, "3000"))
+        val defaultHost = resources.getString(com.myreviews.app.R.string.default_server_host)
+        val defaultPort = resources.getString(com.myreviews.app.R.string.default_server_port)
+        serverUrlEditText.setText(sharedPrefs.getString(KEY_SERVER_URL, defaultHost))
+        serverPortEditText.setText(sharedPrefs.getString(KEY_SERVER_PORT, defaultPort))
         
         // Wenn Cloud-Sync aktiviert war, prüfe ob die Verbindung noch funktioniert
         if (cloudSyncSwitch.isChecked && serverUrlEditText.text.isNotEmpty()) {
@@ -356,6 +394,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
             updateUIState()
+            syncButton.visibility = if (isChecked) View.VISIBLE else View.GONE
         }
         
         serverUrlEditText.addTextChangedListener(object : android.text.TextWatcher {
@@ -506,5 +545,28 @@ class SettingsActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
+    }
+    
+    private fun performSync() {
+        syncButton.isEnabled = false
+        statusTextView.text = "⏳ Synchronisiere..."
+        statusTextView.setTextColor(0xFF666666.toInt())
+        
+        lifecycleScope.launch {
+            val result = AppModule.syncRepository.performSync()
+            
+            when (result) {
+                is SyncResult.Success -> {
+                    statusTextView.text = "✅ ${result.syncedCount} Bewertungen synchronisiert"
+                    statusTextView.setTextColor(0xFF4CAF50.toInt())
+                }
+                is SyncResult.Error -> {
+                    statusTextView.text = "❌ Sync fehlgeschlagen: ${result.message}"
+                    statusTextView.setTextColor(0xFFFF0000.toInt())
+                }
+            }
+            
+            syncButton.isEnabled = true
+        }
     }
 }

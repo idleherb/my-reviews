@@ -346,8 +346,8 @@ services:
 4. API ist erreichbar unter `http://localhost:3000`
 
 ### Noch offene Features
-- [ ] Android App Cloud-Sync implementieren
 - [ ] Export/Import von Bewertungen  
 - [ ] Fotos zu Bewertungen hinzufügen
 - [ ] Multi-Device Support (gleiche UUID)
 - [ ] Weitere User-Features (Avatar, etc.)
+- [ ] Emoji-Reaktionen auf Reviews (❤️, 😂, 🤨, 😮, etc.) - für später geplant

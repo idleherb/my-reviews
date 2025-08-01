@@ -7,6 +7,7 @@ import com.myreviews.app.data.api.NominatimSearchService
 import com.myreviews.app.data.repository.RestaurantRepository
 import com.myreviews.app.data.repository.UserRepository
 import com.myreviews.app.data.repository.ReviewRepository
+import com.myreviews.app.data.repository.SyncRepository
 import com.myreviews.app.data.database.AppDatabase
 import com.myreviews.app.data.preferences.AppPreferences
 
@@ -46,5 +47,10 @@ object AppModule {
     // Review Repository (jetzt mit UserRepository)
     val reviewRepository: ReviewRepository by lazy {
         ReviewRepository(database.reviewDao(), userRepository)
+    }
+    
+    // Sync Repository
+    val syncRepository: SyncRepository by lazy {
+        SyncRepository(applicationContext, database.reviewDao(), userRepository)
     }
 }

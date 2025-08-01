@@ -97,7 +97,9 @@ private fun ReviewEntity.toDomainModel() = Review(
     comment = comment,
     visitDate = visitDate,
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    userId = userId,
+    userName = userName
 )
 
 private fun Review.toEntity() = ReviewEntity(
@@ -111,5 +113,7 @@ private fun Review.toEntity() = ReviewEntity(
     comment = comment,
     visitDate = visitDate,
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    userId = userId,
+    userName = userName
 )

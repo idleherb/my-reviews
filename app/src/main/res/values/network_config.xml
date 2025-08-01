@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android Emulator uses 10.0.2.2 to access host machine's localhost -->
+    <string name="default_server_host">10.0.2.2</string>
+    <string name="default_server_port">3000</string>
+</resources>
