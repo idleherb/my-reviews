@@ -70,7 +70,9 @@ class MainActivity : AppCompatActivity() {
                 setMargins(16, 0, 16, 0)  // Mehr Abstand außen für bessere Touch-Erfahrung
             }
             setOnClickListener {
-                showApiSelectionDialog()
+                // Direkt Einstellungen öffnen
+                val intent = Intent(this, com.myreviews.app.ui.settings.SettingsActivity::class.java)
+                startActivity(intent)
             }
         }
         headerLayout.addView(apiButton)
@@ -108,32 +110,6 @@ class MainActivity : AppCompatActivity() {
                 else -> ""
             }
         }.attach()
-    }
-    
-    private fun showApiSelectionDialog() {
-        val options = arrayOf("Overpass API", "Nominatim API", "Einstellungen")
-        
-        AlertDialog.Builder(this)
-            .setTitle("Optionen")
-            .setItems(options) { dialog, which ->
-                when (which) {
-                    0 -> {
-                        ServiceLocator.switchToOverpass()
-                        Toast.makeText(this, "Verwende jetzt Overpass API", Toast.LENGTH_SHORT).show()
-                    }
-                    1 -> {
-                        ServiceLocator.switchToNominatim()
-                        Toast.makeText(this, "Verwende jetzt Nominatim API", Toast.LENGTH_SHORT).show()
-                    }
-                    2 -> {
-                        // Öffne Einstellungen
-                        val intent = Intent(this, com.myreviews.app.ui.settings.SettingsActivity::class.java)
-                        startActivity(intent)
-                    }
-                }
-                dialog.dismiss()
-            }
-            .show()
     }
     
     fun switchToMapTab() {

@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import com.myreviews.app.di.ServiceLocator
+import com.myreviews.app.di.SearchServiceType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,8 +23,11 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var testConnectionButton: Button
     private lateinit var saveButton: Button
     private lateinit var statusTextView: TextView
+    private lateinit var overpassRadioButton: RadioButton
+    private lateinit var nominatimRadioButton: RadioButton
     
     private lateinit var sharedPrefs: SharedPreferences
+    private var connectionTestPassed = false
     
     companion object {
         const val PREFS_NAME = "MyReviewsPrefs"
@@ -53,6 +58,45 @@ class SettingsActivity : AppCompatActivity() {
             text = "Einstellungen"
             textSize = 24f
             setPadding(0, 0, 0, 32)
+        })
+        
+        // API-Auswahl Section
+        layout.addView(TextView(this).apply {
+            text = "Such-API"
+            textSize = 18f
+            setPadding(0, 0, 0, 16)
+        })
+        
+        val radioGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.VERTICAL
+        }
+        
+        overpassRadioButton = RadioButton(this).apply {
+            text = "Overpass API (empfohlen)"
+            textSize = 16f
+            setPadding(0, 8, 0, 8)
+        }
+        radioGroup.addView(overpassRadioButton)
+        
+        nominatimRadioButton = RadioButton(this).apply {
+            text = "Nominatim API"
+            textSize = 16f
+            setPadding(0, 8, 0, 8)
+        }
+        radioGroup.addView(nominatimRadioButton)
+        
+        layout.addView(radioGroup)
+        
+        // Trennlinie
+        layout.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                2
+            ).apply {
+                topMargin = 32
+                bottomMargin = 32
+            }
+            setBackgroundColor(0xFFDDDDDD.toInt())
         })
         
         // Cloud Sync Switch
@@ -150,17 +194,51 @@ class SettingsActivity : AppCompatActivity() {
     }
     
     private fun loadSettings() {
+        // API-Auswahl laden
+        when (ServiceLocator.currentSearchService) {
+            SearchServiceType.OVERPASS -> overpassRadioButton.isChecked = true
+            SearchServiceType.NOMINATIM -> nominatimRadioButton.isChecked = true
+        }
+        
+        // Cloud-Sync Einstellungen laden
         cloudSyncSwitch.isChecked = sharedPrefs.getBoolean(KEY_CLOUD_SYNC_ENABLED, false)
         serverUrlEditText.setText(sharedPrefs.getString(KEY_SERVER_URL, ""))
         serverPortEditText.setText(sharedPrefs.getString(KEY_SERVER_PORT, "3000"))
+        
+        // Wenn Cloud-Sync aktiviert war, prüfe ob die Verbindung noch funktioniert
+        if (cloudSyncSwitch.isChecked && serverUrlEditText.text.isNotEmpty()) {
+            connectionTestPassed = false // Verbindung muss neu getestet werden
+        }
         
         updateUIState()
     }
     
     private fun setupListeners() {
         cloudSyncSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (!isChecked) {
+                connectionTestPassed = false
+                statusTextView.text = ""
+            }
             updateUIState()
         }
+        
+        serverUrlEditText.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                connectionTestPassed = false
+                updateUIState()
+            }
+        })
+        
+        serverPortEditText.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                connectionTestPassed = false
+                updateUIState()
+            }
+        })
         
         testConnectionButton.setOnClickListener {
             testConnection()
@@ -172,12 +250,17 @@ class SettingsActivity : AppCompatActivity() {
     }
     
     private fun updateUIState() {
-        val isEnabled = cloudSyncSwitch.isChecked
-        serverUrlEditText.isEnabled = isEnabled
-        serverPortEditText.isEnabled = isEnabled
-        testConnectionButton.isEnabled = isEnabled
+        val isCloudSyncEnabled = cloudSyncSwitch.isChecked
+        serverUrlEditText.isEnabled = isCloudSyncEnabled
+        serverPortEditText.isEnabled = isCloudSyncEnabled
+        testConnectionButton.isEnabled = isCloudSyncEnabled
         
-        if (!isEnabled) {
+        // Save Button nur aktivieren wenn:
+        // 1. Cloud-Sync aus ist ODER
+        // 2. Cloud-Sync an ist UND Verbindungstest erfolgreich war
+        saveButton.isEnabled = !isCloudSyncEnabled || connectionTestPassed
+        
+        if (!isCloudSyncEnabled) {
             statusTextView.text = ""
         }
     }
@@ -214,16 +297,26 @@ class SettingsActivity : AppCompatActivity() {
             }
             
             if (result) {
+                connectionTestPassed = true
                 statusTextView.text = "✅ Verbindung erfolgreich!"
                 statusTextView.setTextColor(0xFF4CAF50.toInt())
             } else {
+                connectionTestPassed = false
                 statusTextView.text = "❌ Keine Verbindung zum Server möglich"
                 statusTextView.setTextColor(0xFFFF0000.toInt())
             }
+            updateUIState()
         }
     }
     
     private fun saveSettings() {
+        // API-Auswahl speichern
+        when {
+            overpassRadioButton.isChecked -> ServiceLocator.switchToOverpass()
+            nominatimRadioButton.isChecked -> ServiceLocator.switchToNominatim()
+        }
+        
+        // Cloud-Sync Einstellungen speichern
         val editor = sharedPrefs.edit()
         editor.putBoolean(KEY_CLOUD_SYNC_ENABLED, cloudSyncSwitch.isChecked)
         editor.putString(KEY_SERVER_URL, serverUrlEditText.text.toString().trim())
