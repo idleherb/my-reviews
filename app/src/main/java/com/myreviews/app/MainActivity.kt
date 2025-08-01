@@ -56,14 +56,13 @@ class MainActivity : AppCompatActivity() {
         
         // API-Wechsel Button (kompakt mit nur Icon)
         val apiButton = MaterialButton(this).apply {
-            // Material Design More Vert Icon
-            val typeface = androidx.core.content.res.ResourcesCompat.getFont(
-                this@MainActivity, 
-                R.font.material_icons_regular
-            )
-            setTypeface(typeface)
-            text = "\uE5D4"  // Material Design more_vert icon
-            textSize = 24f
+            // Verwende sichtbares Unicode-Symbol
+            text = "⋯"  // Horizontal ellipsis (universell sichtbar)
+            textSize = 20f
+            // Theme-aware Textfarbe
+            val typedValue = android.util.TypedValue()
+            theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
+            setTextColor(typedValue.data)
             minWidth = resources.getDimensionPixelSize(R.dimen.touch_target_min)
             minHeight = resources.getDimensionPixelSize(R.dimen.touch_target_min)
             minimumWidth = resources.getDimensionPixelSize(R.dimen.touch_target_min)
