@@ -6,12 +6,18 @@ import com.myreviews.app.data.api.OverpassSearchService
 import com.myreviews.app.data.api.NominatimSearchService
 import com.myreviews.app.data.repository.RestaurantRepository
 import com.myreviews.app.data.database.AppDatabase
+import com.myreviews.app.data.preferences.AppPreferences
 
 object AppModule {
     private lateinit var applicationContext: Context
     
     fun initialize(context: Context) {
         applicationContext = context.applicationContext
+    }
+    
+    // App Preferences
+    val appPreferences: AppPreferences by lazy {
+        AppPreferences(applicationContext)
     }
     
     // Dynamische Service-Auswahl basierend auf ServiceLocator

@@ -39,6 +39,11 @@
             android:theme="@style/Theme.MyReviews"
             android:windowSoftInputMode="adjustResize" />
         
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:theme="@style/Theme.MyReviews"
+            android:label="Einstellungen" />
+        
     </application>
 
 </manifest>

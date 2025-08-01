@@ -19,6 +19,7 @@ import androidx.appcompat.widget.Toolbar
 import android.widget.Button
 import android.app.AlertDialog
 import android.util.Log
+import android.content.Intent
 
 class MainActivity : AppCompatActivity() {
     
@@ -110,15 +111,11 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showApiSelectionDialog() {
-        val apis = arrayOf("Overpass API", "Nominatim API")
-        val currentSelection = when (ServiceLocator.currentSearchService) {
-            SearchServiceType.OVERPASS -> 0
-            SearchServiceType.NOMINATIM -> 1
-        }
+        val options = arrayOf("Overpass API", "Nominatim API", "Einstellungen")
         
         AlertDialog.Builder(this)
-            .setTitle("Wähle Such-API")
-            .setSingleChoiceItems(apis, currentSelection) { dialog, which ->
+            .setTitle("Optionen")
+            .setItems(options) { dialog, which ->
                 when (which) {
                     0 -> {
                         ServiceLocator.switchToOverpass()
@@ -127,6 +124,11 @@ class MainActivity : AppCompatActivity() {
                     1 -> {
                         ServiceLocator.switchToNominatim()
                         Toast.makeText(this, "Verwende jetzt Nominatim API", Toast.LENGTH_SHORT).show()
+                    }
+                    2 -> {
+                        // Öffne Einstellungen
+                        val intent = Intent(this, com.myreviews.app.ui.settings.SettingsActivity::class.java)
+                        startActivity(intent)
                     }
                 }
                 dialog.dismiss()
