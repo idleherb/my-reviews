@@ -77,7 +77,7 @@ class AddReviewActivity : AppCompatActivity() {
         val restaurantInfoCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
-            setBackgroundColor(0xFFF5F5F5.toInt())
+            // Kein Hintergrund - verwende Standard-Theme-Background
         }
         
         restaurantNameText = TextView(this).apply {
