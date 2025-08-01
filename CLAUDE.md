@@ -249,8 +249,105 @@ ALTER TABLE reviews ADD COLUMN userId TEXT NOT NULL;
 ALTER TABLE reviews ADD COLUMN userName TEXT NOT NULL;
 ```
 
+## REST API Backend (Implementiert)
+
+### Server-Setup
+- **Framework**: Node.js mit Express
+- **Datenbank**: PostgreSQL
+- **Deployment**: Docker Compose
+
+### Implementierte API Endpoints
+
+#### Health Check
+- `GET /api/health` - Server und Datenbank Status
+
+#### Users
+- `GET /api/users` - Alle Benutzer auflisten
+- `GET /api/users/:userId` - Benutzerdetails abrufen
+- `PUT /api/users/:userId` - Benutzer erstellen/aktualisieren
+
+#### Reviews
+- `GET /api/reviews/user/:userId` - Alle Bewertungen eines Benutzers
+- `GET /api/reviews/restaurant/:restaurantId` - Alle Bewertungen eines Restaurants
+- `POST /api/reviews` - Neue Bewertung erstellen
+- `PUT /api/reviews/:reviewId` - Bewertung aktualisieren
+- `DELETE /api/reviews/:reviewId` - Bewertung löschen
+- `POST /api/reviews/sync` - Bulk-Sync für mehrere Bewertungen
+
+### Datenbank-Schema (PostgreSQL)
+```sql
+-- Users Tabelle
+CREATE TABLE users (
+  user_id VARCHAR(36) PRIMARY KEY,
+  user_name VARCHAR(255) NOT NULL DEFAULT 'Anonym',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Reviews Tabelle  
+CREATE TABLE reviews (
+  id SERIAL PRIMARY KEY,
+  restaurant_id BIGINT NOT NULL,
+  restaurant_name VARCHAR(255) NOT NULL,
+  restaurant_lat DOUBLE PRECISION NOT NULL,
+  restaurant_lon DOUBLE PRECISION NOT NULL,
+  restaurant_address TEXT,
+  rating DECIMAL(2,1) NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  visit_date DATE NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  user_name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- Sync Metadata
+CREATE TABLE sync_metadata (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  last_sync TIMESTAMP NOT NULL DEFAULT NOW(),
+  sync_type VARCHAR(50) NOT NULL,
+  changes_count INT NOT NULL DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+```
+
+### Docker Deployment
+```yaml
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: myreviews
+      POSTGRES_USER: myreviews_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    
+  api:
+    build: ./server
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: myreviews
+      DB_USER: myreviews_user
+      DB_PASSWORD: ${DB_PASSWORD}
+      PORT: 3000
+    ports:
+      - "3000:3000"
+```
+
+### Deployment-Anleitung
+1. `.env` Datei erstellen (von `.env.example` kopieren)
+2. Passwort in `.env` setzen
+3. `docker-compose up -d` ausführen
+4. API ist erreichbar unter `http://localhost:3000`
+
 ### Noch offene Features
-- [ ] Export/Import von Bewertungen
+- [ ] Android App Cloud-Sync implementieren
+- [ ] Export/Import von Bewertungen  
 - [ ] Fotos zu Bewertungen hinzufügen
 - [ ] Multi-Device Support (gleiche UUID)
 - [ ] Weitere User-Features (Avatar, etc.)
