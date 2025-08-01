@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         // API-Wechsel Button (kompakt mit nur Icon)
         val apiButton = MaterialButton(this).apply {
             // Verwende sichtbares Unicode-Symbol
-            text = "⋯"  // Horizontal ellipsis (universell sichtbar)
+            text = "⋮"  // Vertical ellipsis (Standard für Menüs)
             textSize = 20f
             // Theme-aware Textfarbe
             val typedValue = android.util.TypedValue()
