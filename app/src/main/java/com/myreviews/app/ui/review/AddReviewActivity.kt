@@ -169,6 +169,12 @@ class AddReviewActivity : AppCompatActivity() {
         
         visitDateButton = MaterialButton(this).apply {
             text = dateFormatter.format(selectedDate)
+            // Sekundärer Button-Stil: dezent für Datum-Auswahl
+            background = null
+            // Theme-aware Primärfarbe für Interaktion
+            val typedValue = android.util.TypedValue()
+            theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true)
+            setTextColor(typedValue.data)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -191,6 +197,12 @@ class AddReviewActivity : AppCompatActivity() {
         
         cancelButton = MaterialButton(this).apply {
             text = "Abbrechen"
+            // Sekundärer Button-Stil: transparent mit farbigem Text
+            background = null
+            // Theme-aware Outline-Farbe für sekundäre Aktionen
+            val typedValue = android.util.TypedValue()
+            theme.resolveAttribute(com.google.android.material.R.attr.colorOutline, typedValue, true)
+            setTextColor(typedValue.data)
             layoutParams = LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
