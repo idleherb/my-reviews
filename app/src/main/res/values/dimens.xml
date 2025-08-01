@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material Design 8dp baseline grid -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+    <dimen name="spacing_xxl">48dp</dimen>
+    
+    <!-- Common component spacings -->
+    <dimen name="margin_standard">@dimen/spacing_md</dimen>
+    <dimen name="padding_standard">@dimen/spacing_md</dimen>
+    <dimen name="padding_large">@dimen/spacing_lg</dimen>
+    <dimen name="padding_small">@dimen/spacing_sm</dimen>
+    
+    <!-- Touch targets -->
+    <dimen name="touch_target_min">48dp</dimen>
+    
+    <!-- Card elevations -->
+    <dimen name="card_elevation">2dp</dimen>
+    <dimen name="button_elevation">4dp</dimen>
+    <dimen name="dialog_elevation">24dp</dimen>
+</resources>

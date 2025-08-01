@@ -69,14 +69,16 @@ class SettingsActivity : AppCompatActivity() {
         
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 32, 32)
+            val padding = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_xl)
+            setPadding(padding, padding, padding, padding)
         }
         
         // Titel
         layout.addView(TextView(this).apply {
             text = "Einstellungen"
             textSize = 24f
-            setPadding(0, 0, 0, 32)
+            val bottomPadding = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_xl)
+            setPadding(0, 0, 0, bottomPadding)
         })
         
         // API-Auswahl Section
@@ -150,7 +152,8 @@ class SettingsActivity : AppCompatActivity() {
             hint = "z.B. 192.168.1.100 oder meinserver.local"
             setSingleLine()
             setBackgroundResource(android.R.drawable.edit_text)
-            setPadding(16, 16, 16, 16)
+            val editPadding = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_md)
+            setPadding(editPadding, editPadding, editPadding, editPadding)
         }
         layout.addView(serverUrlEditText)
         
@@ -166,7 +169,8 @@ class SettingsActivity : AppCompatActivity() {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             setSingleLine()
             setBackgroundResource(android.R.drawable.edit_text)
-            setPadding(16, 16, 16, 16)
+            val editPadding = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_md)
+            setPadding(editPadding, editPadding, editPadding, editPadding)
         }
         layout.addView(serverPortEditText)
         
@@ -203,7 +207,10 @@ class SettingsActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(32, 16, 32, 32) // Links, Oben, Rechts, Unten
+                val marginLR = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_xl)
+                val marginTop = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_md)
+                val marginBottom = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_xl)
+                setMargins(marginLR, marginTop, marginLR, marginBottom)
             }
         }
         mainLayout.addView(saveButton)
