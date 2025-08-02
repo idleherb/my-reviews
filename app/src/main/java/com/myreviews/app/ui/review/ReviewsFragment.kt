@@ -5,15 +5,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.myreviews.app.di.AppModule
 import com.myreviews.app.domain.model.Review
 import com.myreviews.app.domain.model.Restaurant
+import com.myreviews.app.data.api.ReactionService
 import com.myreviews.app.MainActivity
 import com.myreviews.app.ui.map.MapFragment
 import com.myreviews.app.R
 import android.content.Intent
+import com.myreviews.app.ui.settings.SettingsActivity
 import android.widget.Toast
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +24,9 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 import android.util.Log
+import java.net.HttpURLConnection
+import java.net.URL
+import android.content.Context
 
 class ReviewsFragment : Fragment() {
     
@@ -32,6 +38,26 @@ class ReviewsFragment : Fragment() {
     private val reviewRepository = AppModule.reviewRepository
     private var allReviews: List<Review> = emptyList()
     private var filteredReviews: List<Review> = emptyList()
+    private var currentUserId: String = ""
+    
+    private fun isCloudSyncEnabled(): Boolean {
+        val prefs = requireContext().getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(SettingsActivity.KEY_CLOUD_SYNC_ENABLED, false)
+    }
+    
+    private fun isOwnReview(review: Review): Boolean {
+        // Prüfe ob die Review vom aktuellen Benutzer ist
+        return review.userId == currentUserId
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Force refresh der Liste um Avatar-Änderungen zu reflektieren
+        if (::listView.isInitialized && allReviews.isNotEmpty()) {
+            // Erstelle einen neuen Adapter um View-Caching zu umgehen
+            listView.adapter = ReviewAdapter(filteredReviews)
+        }
+    }
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -57,6 +83,33 @@ class ReviewsFragment : Fragment() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
+        }
+        
+        // Sync Button (nur wenn Cloud Sync aktiviert ist)
+        if (isCloudSyncEnabled()) {
+            val syncButton = com.google.android.material.button.MaterialButton(
+                requireContext(), 
+                null, 
+                com.google.android.material.R.attr.borderlessButtonStyle
+            ).apply {
+                text = "Synchronisieren"
+                icon = androidx.core.content.res.ResourcesCompat.getDrawable(
+                    resources,
+                    android.R.drawable.ic_popup_sync,
+                    null
+                )
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 0, 16)
+                }
+                
+                setOnClickListener {
+                    performSync(this)
+                }
+            }
+            controlsLayout.addView(syncButton)
         }
         
         // Suchfeld
@@ -148,9 +201,20 @@ class ReviewsFragment : Fragment() {
         layout.addView(listView)
         layout.addView(emptyView)
         
-        loadReviews()
+        // Load current user first, then reviews
+        lifecycleScope.launch {
+            loadCurrentUser()
+            loadReviews()
+        }
         
         return layout
+    }
+    
+    private suspend fun loadCurrentUser() {
+        // Stelle sicher, dass ein User existiert
+        val currentUser = AppModule.userRepository.ensureDefaultUser()
+        currentUserId = currentUser.userId
+        Log.d("ReviewsFragment", "Current user loaded: $currentUserId (${currentUser.userName})")
     }
     
     private fun loadReviews() {
@@ -158,8 +222,38 @@ class ReviewsFragment : Fragment() {
             AppModule.reviewRepository.getAllReviews().collect { reviews ->
                 if (!isAdded) return@collect
                 
-                allReviews = reviews
+                // Load reactions if cloud sync is enabled
+                if (isCloudSyncEnabled()) {
+                    allReviews = loadReactionsForReviews(reviews)
+                } else {
+                    allReviews = reviews
+                }
                 filterAndSortReviews()
+            }
+        }
+    }
+    
+    private suspend fun loadReactionsForReviews(reviews: List<Review>): List<Review> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val prefs = requireContext().getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+                val serverUrl = prefs.getString(SettingsActivity.KEY_SERVER_URL, "") ?: ""
+                val serverPort = prefs.getString(SettingsActivity.KEY_SERVER_PORT, "3000") ?: "3000"
+                
+                if (serverUrl.isEmpty()) return@withContext reviews
+                
+                val reactionService = ReactionService("http://$serverUrl:$serverPort")
+                
+                reviews.map { review ->
+                    try {
+                        val reactionResponse = reactionService.getReactions(review.id)
+                        review.copy(reactionCounts = reactionResponse.counts)
+                    } catch (e: Exception) {
+                        review // Return original if loading fails
+                    }
+                }
+            } catch (e: Exception) {
+                reviews // Return original list if any error occurs
             }
         }
     }
@@ -258,82 +352,81 @@ class ReviewsFragment : Fragment() {
                 setPadding(0, 0, 0, 8)
             })
             
-            // Bewertung und Datum
-            val ratingLayout = LinearLayout(requireContext()).apply {
+            // Adresse mit Karten-Icon
+            val addressLayout = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.HORIZONTAL
+                setPadding(0, 0, 0, 16)
+                gravity = android.view.Gravity.CENTER_VERTICAL
             }
             
-            // Sterne als Text anzeigen
-            val ratingText = TextView(requireContext()).apply {
-                text = "★".repeat(review.rating.toInt()) + "☆".repeat(5 - review.rating.toInt())
+            // Karten-Icon (Material Icons place/location)
+            addressLayout.addView(TextView(requireContext()).apply {
+                val typeface = androidx.core.content.res.ResourcesCompat.getFont(
+                    requireContext(), 
+                    R.font.material_icons_regular
+                )
+                setTypeface(typeface)
+                text = "\uE55F" // place icon
                 textSize = 16f
-                setTextColor(0xFFFFB300.toInt()) // Gold
-            }
-            ratingLayout.addView(ratingText)
-            
-            // Datum
-            ratingLayout.addView(TextView(requireContext()).apply {
-                text = " • ${dateFormatter.format(review.visitDate)}"
-                textSize = 14f
-                setTextColor(0xFF666666.toInt())
+                setTextColor(0xFF999999.toInt()) // Grau
+                setPadding(0, 0, 8, 0)
             })
             
-            contentLayout.addView(ratingLayout)
-            
-            // Kommentar
-            if (review.comment.isNotEmpty()) {
-                contentLayout.addView(TextView(requireContext()).apply {
-                    text = review.comment
-                    textSize = 14f
-                    setTextColor(0xFF333333.toInt())
-                    setPadding(0, 8, 0, 0)
-                    maxLines = 2
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                })
-            }
-            
             // Adresse
-            contentLayout.addView(TextView(requireContext()).apply {
+            addressLayout.addView(TextView(requireContext()).apply {
                 text = review.restaurantAddress
                 textSize = 12f
                 setTextColor(0xFF999999.toInt())
-                setPadding(0, 8, 0, 0)
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                )
             })
             
-            // Hinweis zum Anklicken
-            contentLayout.addView(TextView(requireContext()).apply {
-                text = "→ Auf Karte anzeigen"
-                textSize = 12f
-                setTextColor(0xFF2196F3.toInt()) // Blau
-                setPadding(0, 8, 0, 0)
-                setTypeface(null, android.graphics.Typeface.ITALIC)
-            })
+            contentLayout.addView(addressLayout)
+            
+            // ReviewView Komponente verwenden (ohne Restaurantname und Adresse)
+            val reviewView = com.myreviews.app.ui.components.ReviewView(requireContext()).apply {
+                setReview(review, lifecycleScope, showRestaurantName = false, showAddress = false)
+            }
+            contentLayout.addView(reviewView)
+            
+            // Debug logging
+            Log.d("ReviewsFragment", "Review: ${review.restaurantName}, userId: ${review.userId}, currentUserId: $currentUserId, isOwn: ${isOwnReview(review)}")
+            
+            // Reaktions-Leiste (nur wenn Cloud-Sync aktiviert ist und es nicht die eigene Bewertung ist)
+            if (isCloudSyncEnabled() && !isOwnReview(review)) {
+                contentLayout.addView(createReactionBar(review))
+            }
             
             itemView.addView(contentLayout)
             
-            // Action Buttons Container
-            val actionsLayout = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    gravity = android.view.Gravity.CENTER_VERTICAL
-                    setMargins(8, 0, 0, 0)
+            // Action Buttons Container (nur für eigene Reviews)
+            if (isOwnReview(review)) {
+                val actionsLayout = LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        gravity = android.view.Gravity.CENTER_VERTICAL
+                        setMargins(8, 0, 0, 0)
+                    }
                 }
+                
+                // Bearbeiten Icon (Material Design Pencil)
+                actionsLayout.addView(createIconButton("edit", 0xFF999999.toInt()) {
+                    editReview(review)
+                })
+                
+                // Löschen Icon (Material Design Delete)
+                actionsLayout.addView(createIconButton("delete", 0xFF999999.toInt()) {
+                    confirmDeleteReview(review)
+                })
+                
+                itemView.addView(actionsLayout)
             }
-            
-            // Bearbeiten Icon (Material Design Pencil)
-            actionsLayout.addView(createIconButton("edit", 0xFF999999.toInt()) {
-                editReview(review)
-            })
-            
-            // Löschen Icon (Material Design Delete)
-            actionsLayout.addView(createIconButton("delete", 0xFF999999.toInt()) {
-                confirmDeleteReview(review)
-            })
-            
-            itemView.addView(actionsLayout)
             
             // Item zum Wrapper hinzufügen
             wrapper.addView(itemView)
@@ -377,7 +470,7 @@ class ReviewsFragment : Fragment() {
     }
     
     private fun showReviewOptionsDialog(review: Review) {
-        android.app.AlertDialog.Builder(requireContext())
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle(review.restaurantName)
             .setItems(arrayOf("Bearbeiten", "Löschen")) { _, which ->
                 when (which) {
@@ -406,7 +499,7 @@ class ReviewsFragment : Fragment() {
     }
     
     private fun confirmDeleteReview(review: Review) {
-        android.app.AlertDialog.Builder(requireContext())
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle("Bewertung löschen?")
             .setMessage("Möchten Sie diese Bewertung für ${review.restaurantName} wirklich löschen?")
             .setPositiveButton("Löschen") { _, _ ->
@@ -419,9 +512,12 @@ class ReviewsFragment : Fragment() {
     private fun deleteReview(review: Review) {
         lifecycleScope.launch {
             try {
+                // Nur lokal als gelöscht markieren
+                // Der Server wird beim nächsten Sync informiert
                 withContext(Dispatchers.IO) {
                     reviewRepository.deleteReview(review)
                 }
+                
                 Toast.makeText(requireContext(), "Bewertung gelöscht", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Fehler beim Löschen: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -472,6 +568,186 @@ class ReviewsFragment : Fragment() {
             setBackgroundResource(android.R.drawable.list_selector_background)
             
             setOnClickListener { onClick() }
+        }
+    }
+    
+    private fun createReactionBar(review: Review): View {
+        return LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 16, 0, 8)
+            
+            // Nur Emojis mit Reaktionen anzeigen
+            val reactionsWithCounts = review.reactionCounts.filter { it.value > 0 }
+            
+            // Reaktionen anzeigen
+            reactionsWithCounts.forEach { (emoji, count) ->
+                addView(createReactionChip(emoji, count, true) {
+                    handleReactionClick(review, emoji)
+                })
+            }
+            
+            // "Add Reaction" Button (graues Smiley)
+            addView(createReactionChip("😊", 0, false) {
+                showReactionPicker(review)
+            })
+        }
+    }
+    
+    private fun createReactionChip(emoji: String, count: Int, showCount: Boolean, onClick: () -> Unit): View {
+        return TextView(requireContext()).apply {
+            text = if (showCount && count > 0) "$emoji $count" else emoji
+            textSize = 16f
+            setPadding(12, 6, 12, 6)
+            
+            // Modern chip style with rounded corners
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = 16f * resources.displayMetrics.density
+                setColor(0xFFF0F0F0.toInt()) // Light gray background
+                setStroke(1, 0xFFE0E0E0.toInt()) // Subtle border
+            }
+            
+            if (emoji == "😊") {
+                setTextColor(0xFF999999.toInt()) // Gray for add button
+                alpha = 0.6f // Make it more subtle
+            } else {
+                setTextColor(0xFF333333.toInt())
+            }
+            
+            isClickable = true
+            isFocusable = true
+            
+            setOnClickListener { onClick() }
+            
+            // Add margin between chips
+            (layoutParams as? LinearLayout.LayoutParams)?.apply {
+                setMargins(0, 0, 8, 0)
+            }
+        }
+    }
+    
+    private fun showReactionPicker(review: Review) {
+        val emojis = listOf("❤️", "👍", "😂", "🤔", "😮")
+        
+        // Create a horizontal emoji picker dialog
+        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Reaktion wählen")
+            .create()
+        
+        val layout = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(16, 16, 16, 16)
+            gravity = android.view.Gravity.CENTER
+        }
+        
+        emojis.forEach { emoji ->
+            layout.addView(TextView(requireContext()).apply {
+                text = emoji
+                textSize = 24f
+                setPadding(16, 8, 16, 8)
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(android.R.drawable.list_selector_background)
+                
+                setOnClickListener {
+                    handleReactionClick(review, emoji)
+                    dialog.dismiss()
+                }
+            })
+        }
+        
+        dialog.setView(layout)
+        dialog.show()
+    }
+    
+    private fun handleReactionClick(review: Review, emoji: String) {
+        Log.d("ReviewsFragment", "Reaction clicked: $emoji on review ${review.id}, currentUserId: $currentUserId")
+        
+        // Reaktion ohne UI-Feedback speichern
+        lifecycleScope.launch {
+            try {
+                val prefs = requireContext().getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+                val serverUrl = prefs.getString(SettingsActivity.KEY_SERVER_URL, "") ?: ""
+                val serverPort = prefs.getString(SettingsActivity.KEY_SERVER_PORT, "3000") ?: "3000"
+                
+                if (serverUrl.isNotEmpty() && currentUserId.isNotEmpty()) {
+                    val reactionService = ReactionService("http://$serverUrl:$serverPort")
+                    
+                    // Check if user already reacted
+                    val existingReactions = reactionService.getReactions(review.id)
+                    val userReacted = existingReactions.reactions.any { 
+                        it.userId == currentUserId && it.emoji == emoji 
+                    }
+                    
+                    if (userReacted) {
+                        // Remove reaction
+                        val success = reactionService.removeReaction(review.id, currentUserId)
+                        if (success) {
+                            // Refresh the list to update reaction counts
+                            withContext(Dispatchers.Main) {
+                                // Reload reviews to get updated reaction counts
+                                loadReviews()
+                            }
+                        }
+                    } else {
+                        // Add reaction
+                        val success = reactionService.addReaction(review.id, currentUserId, emoji)
+                        if (success) {
+                            // Refresh the list to update reaction counts
+                            withContext(Dispatchers.Main) {
+                                // Reload reviews to get updated reaction counts
+                                loadReviews()
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Silently fail - no toast as per user preference
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    private fun loadAvatarIntoImageView(url: String, imageView: ImageView) {
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val connection = URL(url).openConnection() as HttpURLConnection
+                    connection.doInput = true
+                    connection.connect()
+                    val input = connection.inputStream
+                    val bitmap = android.graphics.BitmapFactory.decodeStream(input)
+                    withContext(Dispatchers.Main) {
+                        imageView.setImageBitmap(bitmap)
+                    }
+                }
+            } catch (e: Exception) {
+                // Keep default image on error
+            }
+        }
+    }
+    
+    private fun performSync(button: com.google.android.material.button.MaterialButton) {
+        button.isEnabled = false
+        button.text = "Synchronisiere..."
+        
+        lifecycleScope.launch {
+            val result = AppModule.syncRepository.performSync()
+            
+            withContext(Dispatchers.Main) {
+                when (result) {
+                    is com.myreviews.app.data.api.SyncResult.Success -> {
+                        val message = result.message ?: "${result.syncedCount} Bewertungen synchronisiert"
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    }
+                    is com.myreviews.app.data.api.SyncResult.Error -> {
+                        Toast.makeText(requireContext(), "Sync fehlgeschlagen: ${result.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+                
+                button.isEnabled = true
+                button.text = "Synchronisieren"
+            }
         }
     }
 }

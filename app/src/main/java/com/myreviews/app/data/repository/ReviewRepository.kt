@@ -61,11 +61,17 @@ class ReviewRepository(
     }
     
     suspend fun updateReview(review: Review) {
-        reviewDao.updateReview(review.toEntity())
+        // Beim Update syncedAt auf null setzen, damit es beim nächsten Sync hochgeladen wird
+        val entity = review.toEntity().copy(
+            syncedAt = null,
+            updatedAt = Date()
+        )
+        reviewDao.updateReview(entity)
     }
     
     suspend fun deleteReview(review: Review) {
-        reviewDao.deleteReview(review.toEntity())
+        // Markiere als gelöscht und setze updatedAt auf jetzt
+        reviewDao.markAsDeleted(review.id, Date())
     }
     
     suspend fun updateUserNameInReviews(userId: String, newUserName: String) {
@@ -77,6 +83,18 @@ class ReviewRepository(
         val avgRating = reviewDao.getAverageRatingForRestaurant(restaurantId) ?: 0f
         val reviewCount = reviewDao.getReviewCountForRestaurant(restaurantId)
         return RestaurantStats(avgRating, reviewCount)
+    }
+    
+    suspend fun getUnsyncedReviews(): List<Review> {
+        return reviewDao.getUnsyncedReviews().map { it.toDomainModel() }
+    }
+    
+    suspend fun markAsSynced(reviewId: Long) {
+        reviewDao.updateSyncedAt(reviewId, Date())
+    }
+    
+    suspend fun cleanupDeletedReviews() {
+        reviewDao.deleteAllSyncedDeletedReviews()
     }
 }
 
@@ -99,7 +117,9 @@ private fun ReviewEntity.toDomainModel() = Review(
     createdAt = createdAt,
     updatedAt = updatedAt,
     userId = userId,
-    userName = userName
+    userName = userName,
+    syncedAt = syncedAt,
+    isDeleted = isDeleted
 )
 
 private fun Review.toEntity() = ReviewEntity(
@@ -115,5 +135,7 @@ private fun Review.toEntity() = ReviewEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     userId = userId,
-    userName = userName
+    userName = userName,
+    syncedAt = syncedAt,
+    isDeleted = isDeleted
 )

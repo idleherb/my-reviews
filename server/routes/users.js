@@ -8,7 +8,7 @@ router.get('/:userId', async (req, res) => {
     const { userId } = req.params;
     
     const result = await pool.query(
-      'SELECT user_id, user_name, created_at, updated_at FROM users WHERE user_id = $1',
+      'SELECT user_id, user_name, avatar_url, created_at, updated_at FROM users WHERE user_id = $1',
       [userId]
     );
     
@@ -54,7 +54,7 @@ router.put('/:userId', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT user_id, user_name, created_at, updated_at FROM users ORDER BY created_at DESC'
+      'SELECT user_id, user_name, avatar_url, created_at, updated_at FROM users ORDER BY created_at DESC'
     );
     
     res.json(result.rows);

@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+import com.myreviews.app.ui.settings.SettingsActivity
+import android.content.Context
 
 class AddReviewActivity : AppCompatActivity() {
     
@@ -314,6 +316,30 @@ class AddReviewActivity : AppCompatActivity() {
                         withContext(Dispatchers.IO) {
                             AppModule.reviewRepository.updateReview(updatedReview)
                         }
+                        
+                        // Wenn Cloud Sync aktiv ist, update auch remote
+                        val prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+                        val cloudSyncEnabled = prefs.getBoolean(SettingsActivity.KEY_CLOUD_SYNC_ENABLED, false)
+                        
+                        if (cloudSyncEnabled) {
+                            val serverUrl = prefs.getString(SettingsActivity.KEY_SERVER_URL, "") ?: ""
+                            val serverPort = prefs.getString(SettingsActivity.KEY_SERVER_PORT, "3000") ?: "3000"
+                            
+                            if (serverUrl.isNotEmpty()) {
+                                val reviewService = com.myreviews.app.data.api.ReviewService("http://$serverUrl:$serverPort")
+                                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                                withContext(Dispatchers.IO) {
+                                    reviewService.updateReview(
+                                        review.id,
+                                        rating,
+                                        comment,
+                                        dateFormat.format(selectedDate),
+                                        review.userId
+                                    )
+                                }
+                            }
+                        }
+                        
                         Toast.makeText(
                             this@AddReviewActivity,
                             "Bewertung aktualisiert!",

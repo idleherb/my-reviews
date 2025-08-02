@@ -51,9 +51,12 @@ class SyncRepository(
                 return SyncResult.Error("Failed to sync user")
             }
             
-            // 3. Upload local reviews
-            val localReviews = reviewDao.getAllReviews().first()
-            val reviewModels = localReviews.map { entity ->
+            // 3. Get all unsynced reviews (where updatedAt > syncedAt or syncedAt is null)
+            val unsyncedReviews = reviewDao.getUnsyncedReviews()
+            android.util.Log.d("SyncRepository", "Found ${unsyncedReviews.size} unsynced reviews")
+            
+            // Convert to domain models
+            val reviewsToSync = unsyncedReviews.map { entity ->
                 Review(
                     id = entity.id,
                     restaurantId = entity.restaurantId,
@@ -67,20 +70,57 @@ class SyncRepository(
                     createdAt = entity.createdAt,
                     updatedAt = entity.updatedAt,
                     userId = entity.userId,
-                    userName = entity.userName
+                    userName = entity.userName,
+                    syncedAt = entity.syncedAt,
+                    isDeleted = entity.isDeleted
                 )
             }
             
-            val uploadResult = service.syncReviews(currentUser.userId, reviewModels)
-            if (uploadResult is SyncResult.Error) {
-                return uploadResult
+            // 4. Send all unsynced reviews to server
+            val syncResponse = service.performBulkSync(currentUser.userId, reviewsToSync)
+                ?: return SyncResult.Error("Sync failed - no response from server")
+            
+            android.util.Log.d("SyncRepository", "Server processed ${syncResponse.processed} reviews")
+            
+            // 5. Clear local database and replace with server data
+            // First, delete all non-tombstone reviews
+            reviewDao.deleteAllNonTombstoneReviews()
+            
+            // 6. Insert all reviews from server
+            var insertedCount = 0
+            for (remote in syncResponse.allReviews) {
+                val entity = ReviewEntity(
+                    id = remote.id,
+                    restaurantId = remote.restaurantId,
+                    restaurantName = remote.restaurantName,
+                    restaurantLat = remote.restaurantLat,
+                    restaurantLon = remote.restaurantLon,
+                    restaurantAddress = remote.restaurantAddress,
+                    rating = remote.rating,
+                    comment = remote.comment,
+                    visitDate = remote.visitDate,
+                    userId = remote.userId,
+                    userName = remote.userName,
+                    createdAt = remote.createdAt,
+                    updatedAt = remote.updatedAt,
+                    syncedAt = Date(), // Mark as synced
+                    isDeleted = false  // Server only sends non-deleted
+                )
+                reviewDao.insertOrUpdateReview(entity)
+                insertedCount++
             }
             
-            // 4. Download remote reviews (optional - for multi-device support)
-            // This could be implemented later
+            // 7. Clean up local tombstones that have been synced
+            reviewDao.deleteAllSyncedDeletedReviews()
             
-            return uploadResult
+            android.util.Log.d("SyncRepository", "Sync complete: ${syncResponse.processed} sent, $insertedCount received")
+            
+            return SyncResult.Success(
+                syncedCount = syncResponse.processed,
+                message = "${syncResponse.processed} Reviews synchronisiert, ${syncResponse.allReviews.size} Reviews empfangen"
+            )
         } catch (e: Exception) {
+            android.util.Log.e("SyncRepository", "Sync error", e)
             return SyncResult.Error(e.message ?: "Unknown error")
         }
     }
@@ -90,17 +130,22 @@ class SyncRepository(
         val currentUser = userRepository.getCurrentUser() ?: return 0
         
         try {
-            val remoteReviews = service.fetchUserReviews(currentUser.userId)
+            // Fetch ALL reviews, not just current user's reviews
+            val remoteReviews = service.fetchAllReviews()
+            android.util.Log.d("SyncRepository", "Fetched ${remoteReviews.size} reviews from server")
+            
             var newCount = 0
+            var skippedCount = 0
             
             for (remote in remoteReviews) {
-                // Check if review already exists locally
+                // Check if review already exists locally (by restaurant + user)
                 val existing = reviewDao.getReviewsForRestaurant(remote.restaurantId).first()
                     .find { it.userId == remote.userId }
                 
                 if (existing == null) {
                     // Insert new review
-                    reviewDao.insertReview(ReviewEntity(
+                    android.util.Log.d("SyncRepository", "Inserting review for ${remote.restaurantName} by ${remote.userName}")
+                    val newId = reviewDao.insertReview(ReviewEntity(
                         restaurantId = remote.restaurantId,
                         restaurantName = remote.restaurantName,
                         restaurantLat = remote.restaurantLat,
@@ -111,15 +156,47 @@ class SyncRepository(
                         visitDate = remote.visitDate,
                         userId = remote.userId,
                         userName = remote.userName,
-                        createdAt = Date(),
-                        updatedAt = Date()
+                        createdAt = remote.createdAt,
+                        updatedAt = remote.updatedAt,
+                        syncedAt = Date(), // Markiere als synchronisiert
+                        isDeleted = false
                     ))
                     newCount++
+                } else if (existing.isDeleted) {
+                    // Lokale Review ist als gelöscht markiert - nicht überschreiben!
+                    android.util.Log.d("SyncRepository", "Skipping review for ${remote.restaurantName} - local is deleted")
+                    skippedCount++
+                } else if (existing.updatedAt.time < remote.updatedAt.time) {
+                    // Remote ist neuer - update lokal
+                    android.util.Log.d("SyncRepository", "Updating review for ${remote.restaurantName} - remote is newer")
+                    reviewDao.updateReview(ReviewEntity(
+                        id = existing.id,
+                        restaurantId = remote.restaurantId,
+                        restaurantName = remote.restaurantName,
+                        restaurantLat = remote.restaurantLat,
+                        restaurantLon = remote.restaurantLon,
+                        restaurantAddress = remote.restaurantAddress,
+                        rating = remote.rating,
+                        comment = remote.comment,
+                        visitDate = remote.visitDate,
+                        userId = remote.userId,
+                        userName = remote.userName,
+                        createdAt = existing.createdAt, // Behalte original createdAt
+                        updatedAt = remote.updatedAt,
+                        syncedAt = Date(), // Markiere als synchronisiert
+                        isDeleted = false
+                    ))
+                    skippedCount++
+                } else {
+                    android.util.Log.d("SyncRepository", "Skipping review for ${remote.restaurantName} - local is newer or same")
+                    skippedCount++
                 }
             }
             
+            android.util.Log.d("SyncRepository", "Download complete: $newCount new, $skippedCount skipped")
             return newCount
         } catch (e: Exception) {
+            android.util.Log.e("SyncRepository", "Error downloading reviews", e)
             e.printStackTrace()
             return 0
         }

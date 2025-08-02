@@ -345,9 +345,73 @@ services:
 3. `docker-compose up -d` ausführen
 4. API ist erreichbar unter `http://localhost:3000`
 
+## Aktueller Stand (August 2025)
+
+### Cloud-Sync ist funktionsfähig!
+- Server läuft lokal auf Port 3000
+- Android App verbindet sich über 10.0.2.2:3000 (Emulator → localhost)
+- Verbindungstest in Settings funktioniert
+- Synchronisation funktioniert
+
+### Letzte Änderungen
+1. **Benutzername in Bewertungsliste hinzugefügt**:
+   - In `ReviewsFragment.kt` wird nun "von [Username]" angezeigt
+   - Kursiv unter dem Restaurantnamen
+   - Code wurde committed, App muss neu gebaut werden
+
+### Server starten
+
+#### Development (mit Auto-Reload)
+```bash
+cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews/server
+./start-dev.sh
+```
+Der Server startet mit Nodemon und lädt automatisch neu bei Code-Änderungen.
+
+#### Production (ohne Docker)
+```bash
+cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews/server
+DB_HOST=localhost DB_PORT=5432 DB_NAME=myreviews DB_USER=myreviews_user DB_PASSWORD=postgres PORT=3000 node index.js
+```
+
+#### Production (mit Docker)
+```bash
+cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews
+docker-compose up -d
+```
+
+### App bauen und installieren
+```bash
+cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews
+./gradlew assembleDebug installDebug
+```
+
+### Wichtige Dateien
+- Server: `/server/index.js` (nutzt `routes/health-simple.js` ohne DB)
+- Android Sync: `app/src/main/java/com/myreviews/app/data/api/SyncService.kt`
+- Settings: `app/src/main/java/com/myreviews/app/ui/settings/SettingsActivity.kt`
+
+### Implementierte Sync-Features (August 2025)
+
+#### Tombstone-Synchronisation
+- Gelöschte Reviews werden nicht wirklich gelöscht, sondern mit `isDeleted = true` markiert
+- Diese "Grabsteine" bleiben für immer in der Datenbank
+- Ermöglicht zuverlässige Synchronisation auch bei längerer Offline-Zeit
+- Server und Client filtern gelöschte Reviews bei der Anzeige heraus
+
+#### Geräte-persistente User ID
+- Basiert auf Android Secure ID (`Settings.Secure.ANDROID_ID`)
+- UUID bleibt gleich, auch nach App-Neuinstallation
+- Ermöglicht Bearbeitung eigener Reviews nach Neuinstallation
+- User-ID wird deterministisch aus Geräte-ID generiert
+
+#### Sync-Verhalten
+- Editierte Reviews: `syncedAt` wird auf `null` gesetzt, beim nächsten Sync hochgeladen
+- Gelöschte Reviews: Werden als gelöscht markiert und beim Sync an Server gemeldet
+- Reactions: Werden in Echtzeit an Server gesendet und lokal aktualisiert
+
 ### Noch offene Features
 - [ ] Export/Import von Bewertungen  
 - [ ] Fotos zu Bewertungen hinzufügen
 - [ ] Multi-Device Support (gleiche UUID)
 - [ ] Weitere User-Features (Avatar, etc.)
-- [ ] Emoji-Reaktionen auf Reviews (❤️, 😂, 🤨, 😮, etc.) - für später geplant

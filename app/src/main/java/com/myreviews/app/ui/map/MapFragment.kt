@@ -36,6 +36,7 @@ import android.widget.TextView
 import com.myreviews.app.R
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import android.widget.FrameLayout
+import com.myreviews.app.ui.settings.SettingsActivity
 
 class MapFragment : Fragment() {
     
@@ -368,11 +369,10 @@ class MapFragment : Fragment() {
             // Custom View für den Dialog erstellen
             val dialogView = createRestaurantDialogView(restaurant, reviews)
             
-            // Dialog anzeigen
-            val buttonText = if (reviews.isNotEmpty()) "Erneut bewerten" else "Bewertung abgeben"
-            val dialog = android.app.AlertDialog.Builder(requireContext())
+            // Material Design Dialog
+            val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setView(dialogView)
-                .setPositiveButton(buttonText) { _, _ ->
+                .setPositiveButton(if (reviews.isNotEmpty()) "Erneut bewerten" else "Bewertung abgeben") { _, _ ->
                     val intent = Intent(requireContext(), AddReviewActivity::class.java).apply {
                         putExtra("restaurant_id", restaurant.id)
                         putExtra("restaurant_name", restaurant.name)
@@ -384,9 +384,7 @@ class MapFragment : Fragment() {
                     startActivity(intent)
                 }
                 .setNegativeButton("Schließen", null)
-                .create()
-            
-            dialog.show()
+                .show()
         }
     }
     
@@ -498,8 +496,11 @@ class MapFragment : Fragment() {
                             })
                         }
                         
-                        // Einzelne Bewertung
-                        reviewContainer.addView(createReviewItemView(context, review))
+                        // Einzelne Bewertung mit ReviewView Komponente
+                        val reviewView = com.myreviews.app.ui.components.ReviewView(context)
+                        // In der Karte brauchen wir keinen Restaurantnamen und keine Adresse
+                        reviewView.setReview(review, lifecycleScope, showRestaurantName = false, showAddress = false)
+                        reviewContainer.addView(reviewView)
                     }
                     
                     // ScrollView für Bewertungen wenn mehr als 3
@@ -531,42 +532,4 @@ class MapFragment : Fragment() {
         }
     }
     
-    private fun createReviewItemView(context: Context, review: com.myreviews.app.domain.model.Review): View {
-        val density = context.resources.displayMetrics.density
-        
-        return LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            
-            // Rating und Datum
-            addView(LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                
-                // Sterne
-                addView(TextView(context).apply {
-                    text = "★".repeat(review.rating.toInt()) + "☆".repeat(5 - review.rating.toInt())
-                    textSize = 14f
-                    setTextColor(0xFFFFB300.toInt())
-                })
-                
-                // Datum
-                addView(TextView(context).apply {
-                    text = " • ${java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.GERMAN).format(review.visitDate)}"
-                    textSize = 12f
-                    setTextColor(0xFF999999.toInt())
-                })
-            })
-            
-            // Kommentar
-            if (review.comment.isNotEmpty()) {
-                addView(TextView(context).apply {
-                    text = review.comment
-                    textSize = 14f
-                    setTextColor(0xFF333333.toInt())
-                    setPadding(0, (4 * density).toInt(), 0, 0)
-                    maxLines = 3
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                })
-            }
-        }
-    }
 }

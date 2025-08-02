@@ -19,5 +19,7 @@ data class ReviewEntity(
     val createdAt: Date = Date(),
     val updatedAt: Date = Date(),
     val userId: String = "",     // User UUID
-    val userName: String = "Anonym" // Username zum Zeitpunkt der Review
+    val userName: String = "Anonym", // Username zum Zeitpunkt der Review
+    val syncedAt: Date? = null,   // Zeitpunkt der letzten Synchronisation
+    val isDeleted: Boolean = false // Markiert gelöschte Reviews für Sync
 )

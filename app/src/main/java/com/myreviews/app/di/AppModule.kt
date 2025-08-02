@@ -10,6 +10,8 @@ import com.myreviews.app.data.repository.ReviewRepository
 import com.myreviews.app.data.repository.SyncRepository
 import com.myreviews.app.data.database.AppDatabase
 import com.myreviews.app.data.preferences.AppPreferences
+import com.myreviews.app.data.api.CloudAvatarService
+import com.myreviews.app.ui.settings.SettingsActivity
 
 object AppModule {
     private lateinit var applicationContext: Context
@@ -41,7 +43,7 @@ object AppModule {
     
     // User Repository
     val userRepository: UserRepository by lazy {
-        UserRepository(database.userDao())
+        UserRepository(database.userDao(), applicationContext)
     }
     
     // Review Repository (jetzt mit UserRepository)
@@ -52,5 +54,22 @@ object AppModule {
     // Sync Repository
     val syncRepository: SyncRepository by lazy {
         SyncRepository(applicationContext, database.reviewDao(), userRepository)
+    }
+    
+    // Cloud Avatar Service (lazy, nur erstellt wenn Cloud Sync aktiv)
+    fun getCloudAvatarService(): CloudAvatarService? {
+        val prefs = applicationContext.getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        val cloudSyncEnabled = prefs.getBoolean(SettingsActivity.KEY_CLOUD_SYNC_ENABLED, false)
+        
+        if (!cloudSyncEnabled) return null
+        
+        val serverUrl = prefs.getString(SettingsActivity.KEY_SERVER_URL, "") ?: ""
+        val serverPort = prefs.getString(SettingsActivity.KEY_SERVER_PORT, "3000") ?: "3000"
+        
+        return if (serverUrl.isNotEmpty()) {
+            CloudAvatarService("http://$serverUrl:$serverPort")
+        } else {
+            null
+        }
     }
 }

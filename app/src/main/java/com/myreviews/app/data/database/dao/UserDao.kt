@@ -41,4 +41,6 @@ interface UserDao {
     
     @Delete
     suspend fun deleteUser(user: User)
+    
+    // Avatar is now cloud-only, no local storage
 }

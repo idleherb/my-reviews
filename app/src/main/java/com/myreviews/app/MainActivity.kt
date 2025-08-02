@@ -21,6 +21,9 @@ import android.widget.Button
 import android.app.AlertDialog
 import android.util.Log
 import android.content.Intent
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import com.myreviews.app.di.AppModule
 
 class MainActivity : AppCompatActivity() {
     
@@ -29,6 +32,12 @@ class MainActivity : AppCompatActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Stelle sicher, dass ein Default-User existiert
+        lifecycleScope.launch {
+            val user = AppModule.userRepository.ensureDefaultUser()
+            Log.d("MainActivity", "User initialized: ${user.userId} (${user.userName})")
+        }
         
         // Erstelle Layout programmatisch
         val layout = LinearLayout(this).apply {
