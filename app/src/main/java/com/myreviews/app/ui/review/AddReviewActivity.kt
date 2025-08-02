@@ -340,6 +340,9 @@ class AddReviewActivity : AppCompatActivity() {
                             }
                         }
                         
+                        // AutoSync triggern falls aktiviert
+                        AppModule.autoSyncManager.triggerSyncIfEnabled("review_updated")
+                        
                         Toast.makeText(
                             this@AddReviewActivity,
                             "Bewertung aktualisiert!",
@@ -358,6 +361,9 @@ class AddReviewActivity : AppCompatActivity() {
                         comment = comment,
                         visitDate = selectedDate
                     )
+                    
+                    // AutoSync triggern falls aktiviert
+                    AppModule.autoSyncManager.triggerSyncIfEnabled("review_added")
                     
                     Toast.makeText(
                         this@AddReviewActivity,

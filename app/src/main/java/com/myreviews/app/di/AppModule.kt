@@ -11,6 +11,7 @@ import com.myreviews.app.data.repository.SyncRepository
 import com.myreviews.app.data.database.AppDatabase
 import com.myreviews.app.data.preferences.AppPreferences
 import com.myreviews.app.data.api.CloudAvatarService
+import com.myreviews.app.data.sync.AutoSyncManager
 import com.myreviews.app.ui.settings.SettingsActivity
 
 object AppModule {
@@ -54,6 +55,11 @@ object AppModule {
     // Sync Repository
     val syncRepository: SyncRepository by lazy {
         SyncRepository(applicationContext, database.reviewDao(), userRepository)
+    }
+    
+    // AutoSync Manager
+    val autoSyncManager: AutoSyncManager by lazy {
+        AutoSyncManager.getInstance(applicationContext)
     }
     
     // Cloud Avatar Service (lazy, nur erstellt wenn Cloud Sync aktiv)

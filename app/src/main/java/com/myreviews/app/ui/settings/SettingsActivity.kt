@@ -31,6 +31,7 @@ import com.myreviews.app.data.api.SyncResult
 class SettingsActivity : AppCompatActivity() {
     
     private lateinit var cloudSyncSwitch: SwitchCompat
+    private lateinit var autoSyncSwitch: SwitchCompat
     private lateinit var serverUrlEditText: EditText
     private lateinit var serverPortEditText: EditText
     private lateinit var testConnectionButton: MaterialButton
@@ -193,6 +194,15 @@ class SettingsActivity : AppCompatActivity() {
             setPadding(0, 0, 0, 24)
         }
         layout.addView(cloudSyncSwitch)
+        
+        // AutoSync Switch (nur sichtbar wenn Cloud-Sync an)
+        autoSyncSwitch = SwitchCompat(this).apply {
+            text = "Automatisch synchronisieren"
+            textSize = 16f
+            setPadding(0, 0, 0, 16)
+            visibility = View.GONE // Startet versteckt
+        }
+        layout.addView(autoSyncSwitch)
         
         // Container für Cloud-Sync bezogene Einstellungen
         val cloudSyncContainer = LinearLayout(this).apply {
@@ -491,12 +501,14 @@ class SettingsActivity : AppCompatActivity() {
         
         // Cloud-Sync Einstellungen laden
         cloudSyncSwitch.isChecked = sharedPrefs.getBoolean(KEY_CLOUD_SYNC_ENABLED, false)
+        autoSyncSwitch.isChecked = AppModule.autoSyncManager.isAutoSyncEnabled()
         val defaultHost = resources.getString(com.myreviews.app.R.string.default_server_host)
         val defaultPort = resources.getString(com.myreviews.app.R.string.default_server_port)
         serverUrlEditText.setText(sharedPrefs.getString(KEY_SERVER_URL, defaultHost))
         serverPortEditText.setText(sharedPrefs.getString(KEY_SERVER_PORT, defaultPort))
         
-        // Container sichtbar machen wenn Cloud-Sync aktiviert ist
+        // AutoSync und Container sichtbar machen wenn Cloud-Sync aktiviert ist
+        autoSyncSwitch.visibility = if (cloudSyncSwitch.isChecked) View.VISIBLE else View.GONE
         cloudSyncContainer.visibility = if (cloudSyncSwitch.isChecked) View.VISIBLE else View.GONE
         
         // Wenn Cloud-Sync aktiviert war, prüfe ob die Verbindung noch funktioniert
@@ -513,8 +525,10 @@ class SettingsActivity : AppCompatActivity() {
                 connectionTestPassed = false
                 statusContainer.visibility = View.GONE
                 cloudSyncContainer.visibility = View.GONE
+                autoSyncSwitch.visibility = View.GONE
             } else {
                 cloudSyncContainer.visibility = View.VISIBLE
+                autoSyncSwitch.visibility = View.VISIBLE
                 // Prüfe ob Benutzername noch Anonym ist
                 val currentName = userNameEditText.text.toString().trim()
                 if (currentName.isEmpty() || currentName == "Anonym") {
@@ -530,7 +544,8 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
             updateUIState()
-            syncButton.visibility = if (isChecked) View.VISIBLE else View.GONE
+            // Sync button nur sichtbar wenn Cloud-Sync an und AutoSync aus
+            updateSyncButtonVisibility()
         }
         
         serverUrlEditText.addTextChangedListener(object : android.text.TextWatcher {
@@ -551,6 +566,10 @@ class SettingsActivity : AppCompatActivity() {
             }
         })
         
+        autoSyncSwitch.setOnCheckedChangeListener { _, isChecked ->
+            updateSyncButtonVisibility()
+        }
+        
         testConnectionButton.setOnClickListener {
             testConnection()
         }
@@ -558,6 +577,12 @@ class SettingsActivity : AppCompatActivity() {
         saveButton.setOnClickListener {
             saveSettings()
         }
+    }
+    
+    private fun updateSyncButtonVisibility() {
+        // Sync button nur sichtbar wenn Cloud-Sync an UND AutoSync aus
+        val showSyncButton = cloudSyncSwitch.isChecked && !autoSyncSwitch.isChecked
+        syncButton.visibility = if (showSyncButton) View.VISIBLE else View.GONE
     }
     
     private fun updateUIState() {
@@ -733,6 +758,14 @@ class SettingsActivity : AppCompatActivity() {
             editor.putString(KEY_SERVER_URL, serverUrlEditText.text.toString().trim())
             editor.putString(KEY_SERVER_PORT, serverPortEditText.text.toString().trim())
             editor.apply()
+            
+            // AutoSync-Einstellungen speichern
+            AppModule.autoSyncManager.setAutoSyncEnabled(autoSyncSwitch.isChecked)
+            
+            // AutoSync triggern wenn aktiviert (für Username/Avatar-Sync)
+            if (cloudSyncSwitch.isChecked && autoSyncSwitch.isChecked) {
+                AppModule.autoSyncManager.triggerSyncIfEnabled("settings_saved")
+            }
             
             Toast.makeText(this@SettingsActivity, "Einstellungen gespeichert", Toast.LENGTH_SHORT).show()
             finish()

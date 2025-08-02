@@ -37,6 +37,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val user = AppModule.userRepository.ensureDefaultUser()
             Log.d("MainActivity", "User initialized: ${user.userId} (${user.userName})")
+            
+            // AutoSync triggern falls aktiviert (App-Start)
+            AppModule.autoSyncManager.triggerSyncIfEnabled("app_startup")
         }
         
         // Erstelle Layout programmatisch

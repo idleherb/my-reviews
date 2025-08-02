@@ -27,7 +27,6 @@ import android.util.Log
 import java.net.HttpURLConnection
 import java.net.URL
 import android.content.Context
-import android.content.res.ColorStateList
 
 class ReviewsFragment : Fragment() {
     
@@ -35,17 +34,12 @@ class ReviewsFragment : Fragment() {
     private lateinit var emptyView: TextView
     private lateinit var searchEditText: EditText
     private lateinit var sortSpinner: Spinner
-    private lateinit var syncButton: com.google.android.material.button.MaterialButton
     private val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMAN)
     private val reviewRepository = AppModule.reviewRepository
     private var allReviews: List<Review> = emptyList()
     private var filteredReviews: List<Review> = emptyList()
     private var currentUserId: String = ""
     
-    private fun isCloudSyncEnabled(): Boolean {
-        val prefs = requireContext().getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getBoolean(SettingsActivity.KEY_CLOUD_SYNC_ENABLED, false)
-    }
     
     private fun isOwnReview(review: Review): Boolean {
         // Prüfe ob die Review vom aktuellen Benutzer ist
@@ -54,10 +48,6 @@ class ReviewsFragment : Fragment() {
     
     override fun onResume() {
         super.onResume()
-        // Update sync button visibility
-        if (::syncButton.isInitialized) {
-            syncButton.visibility = if (isCloudSyncEnabled()) View.VISIBLE else View.GONE
-        }
         // Force refresh der Liste um Avatar-Änderungen zu reflektieren
         if (::listView.isInitialized && allReviews.isNotEmpty()) {
             // Erstelle einen neuen Adapter um View-Caching zu umgehen
@@ -92,16 +82,6 @@ class ReviewsFragment : Fragment() {
             )
         }
         
-        // Search row with sync button
-        val searchRow = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            gravity = android.view.Gravity.CENTER_VERTICAL
-        }
-        
         // Suchfeld
         searchEditText = EditText(requireContext()).apply {
             hint = "Suche nach Restaurant oder Bewertung..."
@@ -109,11 +89,10 @@ class ReviewsFragment : Fragment() {
             setBackgroundResource(android.R.drawable.edit_text)
             setPadding(16, 16, 16, 16)
             layoutParams = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f // Take remaining space
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(0, 0, 8, 0)
+                setMargins(0, 0, 0, 8)
             }
             addTextChangedListener(object : android.text.TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -123,34 +102,7 @@ class ReviewsFragment : Fragment() {
                 }
             })
         }
-        searchRow.addView(searchEditText)
-        
-        // Sync Button (nur Icon, kein Text)
-        syncButton = com.google.android.material.button.MaterialButton(
-            requireContext(), 
-            null, 
-            com.google.android.material.R.attr.materialIconButtonStyle
-        ).apply {
-            icon = androidx.core.content.res.ResourcesCompat.getDrawable(
-                resources,
-                android.R.drawable.ic_popup_sync,
-                null
-            )
-            iconTint = ColorStateList.valueOf(0xFF666666.toInt()) // Neutrales Grau wie andere Icons
-            contentDescription = "Synchronisieren"
-            
-            val size = (48 * resources.displayMetrics.density).toInt()
-            layoutParams = LinearLayout.LayoutParams(size, size)
-            
-            visibility = if (isCloudSyncEnabled()) View.VISIBLE else View.GONE
-            
-            setOnClickListener {
-                performSync(this)
-            }
-        }
-        searchRow.addView(syncButton)
-        
-        controlsLayout.addView(searchRow)
+        controlsLayout.addView(searchEditText)
         
         // Sortierung
         val sortLayout = LinearLayout(requireContext()).apply {
@@ -243,7 +195,9 @@ class ReviewsFragment : Fragment() {
                 if (!isAdded) return@collect
                 
                 // Load reactions if cloud sync is enabled
-                if (isCloudSyncEnabled()) {
+                val prefs = requireContext().getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+                val isCloudSyncEnabled = prefs.getBoolean(SettingsActivity.KEY_CLOUD_SYNC_ENABLED, false)
+                if (isCloudSyncEnabled) {
                     allReviews = loadReactionsForReviews(reviews)
                 } else {
                     allReviews = reviews
@@ -418,7 +372,9 @@ class ReviewsFragment : Fragment() {
             Log.d("ReviewsFragment", "Review: ${review.restaurantName}, userId: ${review.userId}, currentUserId: $currentUserId, isOwn: ${isOwnReview(review)}")
             
             // Reaktions-Leiste anzeigen wenn Cloud-Sync aktiviert ist
-            if (isCloudSyncEnabled()) {
+            val prefs = requireContext().getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+            val isCloudSyncEnabled = prefs.getBoolean(SettingsActivity.KEY_CLOUD_SYNC_ENABLED, false)
+            if (isCloudSyncEnabled) {
                 if (!isOwnReview(review)) {
                     // Bei fremden Reviews: Reaktionen mit "Add" Button
                     contentLayout.addView(createReactionBar(review))
@@ -540,11 +496,13 @@ class ReviewsFragment : Fragment() {
     private fun deleteReview(review: Review) {
         lifecycleScope.launch {
             try {
-                // Nur lokal als gelöscht markieren
-                // Der Server wird beim nächsten Sync informiert
+                // Lokal als gelöscht markieren
                 withContext(Dispatchers.IO) {
                     reviewRepository.deleteReview(review)
                 }
+                
+                // AutoSync triggern falls aktiviert
+                AppModule.autoSyncManager.triggerSyncIfEnabled("review_deleted")
                 
                 Toast.makeText(requireContext(), "Bewertung gelöscht", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -730,6 +688,9 @@ class ReviewsFragment : Fragment() {
                         // Remove reaction
                         val success = reactionService.removeReaction(review.id, currentUserId)
                         if (success) {
+                            // AutoSync triggern falls aktiviert
+                            AppModule.autoSyncManager.triggerSyncIfEnabled("reaction_removed")
+                            
                             // Refresh the list to update reaction counts
                             withContext(Dispatchers.Main) {
                                 // Reload reviews to get updated reaction counts
@@ -740,6 +701,9 @@ class ReviewsFragment : Fragment() {
                         // Add reaction
                         val success = reactionService.addReaction(review.id, currentUserId, emoji)
                         if (success) {
+                            // AutoSync triggern falls aktiviert
+                            AppModule.autoSyncManager.triggerSyncIfEnabled("reaction_added")
+                            
                             // Refresh the list to update reaction counts
                             withContext(Dispatchers.Main) {
                                 // Reload reviews to get updated reaction counts
@@ -774,27 +738,4 @@ class ReviewsFragment : Fragment() {
         }
     }
     
-    private fun performSync(button: com.google.android.material.button.MaterialButton) {
-        button.isEnabled = false
-        button.text = "Synchronisiere..."
-        
-        lifecycleScope.launch {
-            val result = AppModule.syncRepository.performSync()
-            
-            withContext(Dispatchers.Main) {
-                when (result) {
-                    is com.myreviews.app.data.api.SyncResult.Success -> {
-                        val message = result.message ?: "${result.syncedCount} Bewertungen synchronisiert"
-                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                    }
-                    is com.myreviews.app.data.api.SyncResult.Error -> {
-                        Toast.makeText(requireContext(), "Sync fehlgeschlagen: ${result.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
-                
-                button.isEnabled = true
-                button.text = "Synchronisieren"
-            }
-        }
-    }
 }
