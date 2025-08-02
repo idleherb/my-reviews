@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
             AppModule.autoSyncManager.triggerSyncIfEnabled("app_startup")
         }
         
+        
         // Erstelle Layout programmatisch
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
