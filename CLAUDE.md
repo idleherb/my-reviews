@@ -353,7 +353,7 @@ services:
 - Verbindungstest in Settings funktioniert
 - Synchronisation funktioniert
 
-### Letzte Implementierungen: AutoSync & Avatar-System ✅
+### Letzte Implementierungen ✅
 
 #### 1. Automatische Synchronisation
 - **AutoSyncManager**: Vollständig implementiert mit allen Triggern
@@ -371,6 +371,25 @@ services:
   - "Foto löschen" nur aktiv wenn Avatar vorhanden
   - Bestätigungsdialog vor dem Löschen
 - **Smart Clipping**: Rechteckige Bilder werden automatisch rund zugeschnitten
+
+#### 3. Karten-Navigation Fix
+- **Problem**: Horizontales Verschieben der Karte löste Tab-Wechsel aus
+- **Lösung**: `isUserInputEnabled = false` im ViewPager2
+- **Resultat**: Karte frei beweglich, Tabs nur per Klick wechselbar
+
+### 📝 Entwicklungsprozess-Dokumentation
+
+**Wichtig**: Jeder inhaltliche Entwicklungsschritt wird:
+1. **Implementiert** mit sauberem, kommentiertem Code
+2. **Getestet** durch Build und Installation auf Emulatoren
+3. **Committed** mit aussagekräftigen Commit-Messages
+4. **Dokumentiert** in dieser CLAUDE.md Datei
+
+Diese Praxis sorgt für:
+- Nachvollziehbare Entwicklungshistorie
+- Einfaches Rollback bei Problemen
+- Klare Kommunikation über Änderungen
+- Professionelle Projektführung
 
 ### Server starten
 
