@@ -44,6 +44,11 @@
             android:theme="@style/Theme.MyReviews"
             android:label="Einstellungen" />
         
+        <activity
+            android:name=".ui.avatar.AvatarCropActivity"
+            android:theme="@style/Theme.MyReviews"
+            android:label="Profilbild zuschneiden" />
+        
     </application>
 
 </manifest>

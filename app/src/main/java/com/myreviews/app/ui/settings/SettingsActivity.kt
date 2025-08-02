@@ -1,5 +1,6 @@
 package com.myreviews.app.ui.settings
 
+import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import java.net.HttpURLConnection
 import java.net.URL
 import com.myreviews.app.data.api.SyncResult
+import com.myreviews.app.ui.avatar.AvatarCropActivity
 
 class SettingsActivity : AppCompatActivity() {
     
@@ -43,6 +45,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var userIdTextView: TextView
     private lateinit var syncButton: MaterialButton
     private lateinit var avatarImageView: ImageView
+    private lateinit var deleteAvatarButton: MaterialButton
     private lateinit var cloudSyncContainer: LinearLayout
     private lateinit var statusContainer: LinearLayout
     
@@ -54,7 +57,23 @@ class SettingsActivity : AppCompatActivity() {
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { uploadAvatar(it) }
+        uri?.let { 
+            // Navigate to crop activity
+            val intent = Intent(this, AvatarCropActivity::class.java).apply {
+                putExtra(AvatarCropActivity.EXTRA_IMAGE_URI, uri)
+            }
+            cropImageLauncher.launch(intent)
+        }
+    }
+    
+    private val cropImageLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.getParcelableExtra<Uri>(AvatarCropActivity.RESULT_CROPPED_URI)?.let { croppedUri ->
+                uploadAvatar(croppedUri)
+            }
+        }
     }
     
     companion object {
@@ -199,10 +218,30 @@ class SettingsActivity : AppCompatActivity() {
         autoSyncSwitch = SwitchCompat(this).apply {
             text = "Automatisch synchronisieren"
             textSize = 16f
-            setPadding(0, 0, 0, 16)
+            setPadding(0, 0, 0, 8)
             visibility = View.GONE // Startet versteckt
         }
         layout.addView(autoSyncSwitch)
+        
+        // Manual Sync Button (immer sichtbar wenn Cloud-Sync an)
+        val manualSyncButton = MaterialButton(this, null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
+            text = "Jetzt synchronisieren"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = 8
+                bottomMargin = 24
+            }
+            visibility = View.GONE // Startet versteckt
+            setOnClickListener {
+                performSync()
+            }
+        }
+        layout.addView(manualSyncButton)
+        
+        // Store manual sync button reference for visibility updates
+        this.syncButton = manualSyncButton
         
         // Container für Cloud-Sync bezogene Einstellungen
         val cloudSyncContainer = LinearLayout(this).apply {
@@ -252,46 +291,74 @@ class SettingsActivity : AppCompatActivity() {
         val avatarLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 8, 0, 16)
+            gravity = android.view.Gravity.CENTER_VERTICAL
         }
         
-        // Avatar ImageView
+        // Avatar ImageView - Rund mit Rahmen
         avatarImageView = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(120, 120).apply {
+            val size = (80 * resources.displayMetrics.density).toInt() // 80dp
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
                 setMargins(0, 0, 16, 0)
             }
             scaleType = ImageView.ScaleType.CENTER_CROP
-            setBackgroundResource(android.R.drawable.ic_menu_gallery)
+            
+            // Runder Hintergrund mit Rahmen
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(0xFFF5F5F5.toInt()) // Light gray background
+                setStroke(2, 0xFFE0E0E0.toInt()) // Subtle border
+            }
+            
+            // Placeholder Icon
+            setImageResource(android.R.drawable.ic_menu_camera)
+            imageTintList = android.content.res.ColorStateList.valueOf(0xFF999999.toInt())
+            setPadding(16, 16, 16, 16)
+            
+            // Make avatar clickable
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                showAvatarPicker()
+            }
         }
         avatarLayout.addView(avatarImageView)
         
-        // Avatar Buttons
+        // Avatar Buttons - Vertikal links ausgerichtet
         val avatarButtonsLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
         }
         
         val changeAvatarButton = MaterialButton(this, null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
             text = "Foto ändern"
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                bottomMargin = 8
+                bottomMargin = 4
             }
+            gravity = android.view.Gravity.START
             setOnClickListener {
                 showAvatarPicker()
             }
         }
         avatarButtonsLayout.addView(changeAvatarButton)
         
-        val deleteAvatarButton = MaterialButton(this, null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
+        deleteAvatarButton = MaterialButton(this, null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
             text = "Foto löschen"
             setTextColor(0xFFFF5252.toInt())
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
+            gravity = android.view.Gravity.START
+            isEnabled = false // Start disabled
+            alpha = 0.5f // Visual feedback for disabled state
             setOnClickListener {
-                deleteAvatar()
+                confirmDeleteAvatar()
             }
         }
         avatarButtonsLayout.addView(deleteAvatarButton)
@@ -415,54 +482,21 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         
-        // Sync Button (Secondary Style - nur wenn Cloud-Sync aktiviert)
-        val syncButton = MaterialButton(this, null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
-            text = "Jetzt synchronisieren"
-            layoutParams = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            ).apply {
-                rightMargin = resources.getDimensionPixelSize(com.myreviews.app.R.dimen.spacing_md)
-            }
-            visibility = if (cloudSyncSwitch.isChecked) View.VISIBLE else View.GONE
-        }
-        
-        syncButton.setOnClickListener {
-            performSync()
-        }
-        
-        buttonLayout.addView(syncButton)
         
         // Speichern Button
         saveButton = MaterialButton(this).apply {
             text = "Einstellungen speichern"
             layoutParams = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
         buttonLayout.addView(saveButton)
         
         mainLayout.addView(buttonLayout)
         
-        // Store sync button reference for visibility updates
-        this.syncButton = syncButton
-        
         setContentView(mainLayout)
         
-        // Track if user made changes
-        userNameEditText.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                // Show sync button if cloud sync is enabled and name changed
-                if (cloudSyncSwitch.isChecked) {
-                    syncButton.visibility = View.VISIBLE
-                }
-            }
-        })
         
         // Action Bar verstecken, da wir einen eigenen Close-Button haben
         supportActionBar?.hide()
@@ -544,7 +578,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
             updateUIState()
-            // Sync button nur sichtbar wenn Cloud-Sync an und AutoSync aus
+            // Sync button sichtbar wenn Cloud-Sync an
             updateSyncButtonVisibility()
         }
         
@@ -580,8 +614,8 @@ class SettingsActivity : AppCompatActivity() {
     }
     
     private fun updateSyncButtonVisibility() {
-        // Sync button nur sichtbar wenn Cloud-Sync an UND AutoSync aus
-        val showSyncButton = cloudSyncSwitch.isChecked && !autoSyncSwitch.isChecked
+        // Sync button immer sichtbar wenn Cloud-Sync an
+        val showSyncButton = cloudSyncSwitch.isChecked
         syncButton.visibility = if (showSyncButton) View.VISIBLE else View.GONE
     }
     
@@ -830,8 +864,16 @@ class SettingsActivity : AppCompatActivity() {
                     AppModule.getCloudAvatarService()?.updateCache(currentUserId, avatarUrl)
                     
                     withContext(Dispatchers.Main) {
-                        // Show the uploaded image
-                        avatarImageView.setImageURI(uri)
+                        // Load and show the uploaded image as round avatar
+                        try {
+                            val inputStream = contentResolver.openInputStream(uri)
+                            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                            setRoundAvatarImage(bitmap)
+                        } catch (e: Exception) {
+                            // Fallback: just set the URI
+                            avatarImageView.setImageURI(uri)
+                        }
+                        
                         Toast.makeText(this@SettingsActivity, "Profilbild hochgeladen", Toast.LENGTH_SHORT).show()
                         
                         // Notify other components about avatar change
@@ -848,6 +890,17 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+    
+    private fun confirmDeleteAvatar() {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Profilbild löschen?")
+            .setMessage("Möchtest du dein Profilbild wirklich löschen?")
+            .setPositiveButton("Löschen") { _, _ ->
+                deleteAvatar()
+            }
+            .setNegativeButton("Abbrechen", null)
+            .show()
     }
     
     private fun deleteAvatar() {
@@ -874,7 +927,7 @@ class SettingsActivity : AppCompatActivity() {
                     AppModule.getCloudAvatarService()?.updateCache(currentUserId, null)
                     
                     withContext(Dispatchers.Main) {
-                        avatarImageView.setImageResource(android.R.drawable.ic_menu_gallery)
+                        resetAvatarToDefault()
                         Toast.makeText(this@SettingsActivity, "Profilbild gelöscht", Toast.LENGTH_SHORT).show()
                         
                         // Notify other components about avatar change
@@ -903,13 +956,56 @@ class SettingsActivity : AppCompatActivity() {
                     val input = connection.inputStream
                     val bitmap = android.graphics.BitmapFactory.decodeStream(input)
                     withContext(Dispatchers.Main) {
-                        avatarImageView.setImageBitmap(bitmap)
+                        setRoundAvatarImage(bitmap)
                     }
                 }
             } catch (e: Exception) {
                 // Fallback to default image
-                avatarImageView.setImageResource(android.R.drawable.ic_menu_gallery)
+                resetAvatarToDefault()
             }
+        }
+    }
+    
+    private fun setRoundAvatarImage(bitmap: android.graphics.Bitmap) {
+        // Erstelle runden Clip für das Bild
+        avatarImageView.apply {
+            // Entferne Padding und Tint für echtes Bild
+            setPadding(0, 0, 0, 0)
+            imageTintList = null
+            
+            // Setze das Bild
+            setImageBitmap(bitmap)
+            
+            // Runder Clip Path
+            clipToOutline = true
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                    outline.setOval(0, 0, view.width, view.height)
+                }
+            }
+        }
+        
+        // Enable delete button when avatar is set
+        if (::deleteAvatarButton.isInitialized) {
+            deleteAvatarButton.isEnabled = true
+            deleteAvatarButton.alpha = 1.0f
+        }
+    }
+    
+    private fun resetAvatarToDefault() {
+        avatarImageView.apply {
+            // Placeholder Icon zurücksetzen
+            setImageResource(android.R.drawable.ic_menu_camera)
+            imageTintList = android.content.res.ColorStateList.valueOf(0xFF999999.toInt())
+            setPadding(16, 16, 16, 16)
+            clipToOutline = false
+            outlineProvider = null
+        }
+        
+        // Disable delete button when no avatar
+        if (::deleteAvatarButton.isInitialized) {
+            deleteAvatarButton.isEnabled = false
+            deleteAvatarButton.alpha = 0.5f
         }
     }
 }
