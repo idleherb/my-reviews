@@ -347,6 +347,25 @@ services:
 
 ## Aktueller Stand (August 2025)
 
+### ✅ Vollständige UUID-Migration und Avatar-Handling implementiert!
+
+#### UUID-basierte Review-IDs
+- **Problem gelöst**: Reviews verschwanden nach Sync aufgrund von ID-Konflikten
+- **Lösung**: Client generiert UUIDs, Server speichert sie nur
+- **Migration**: Automatische Konvertierung von Long zu String IDs
+- **Kompatibilität**: Alle APIs und UI-Komponenten angepasst
+
+#### Avatar-System vollständig funktional
+- **Upload**: Fotos werden auf Server gespeichert, Cache aktualisiert
+- **Delete**: Avatars werden entfernt, UI sofort aktualisiert
+- **Anzeige**: Echtzeit-Updates in allen Review-Listen
+- **Storage**: Server speichert Avatars in `/uploads/avatars/`
+
+#### Verbesserte Sortierung
+- **Primär**: Nach Besuchsdatum (visitDate)
+- **Sekundär**: Nach Erstellungszeit (createdAt) bei gleichem Datum
+- **Resultat**: Reviews erscheinen immer in korrekter Reihenfolge
+
 ### Cloud-Sync ist funktionsfähig!
 - Server läuft lokal auf Port 3000
 - Android App verbindet sich über 10.0.2.2:3000 (Emulator → localhost)
@@ -410,8 +429,57 @@ cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews
 - Gelöschte Reviews: Werden als gelöscht markiert und beim Sync an Server gemeldet
 - Reactions: Werden in Echtzeit an Server gesendet und lokal aktualisiert
 
-### Noch offene Features
-- [ ] Export/Import von Bewertungen  
+### Wichtige neue Dateien
+- **Migration Scripts**: `server/db/migrations/002_uuid_reviews.sql`, `003_add_avatars.sql`
+- **Migration Runner**: `server/run-migration.js`
+- **Avatar API**: `server/routes/avatars.js`
+- **Upload Storage**: `server/uploads/avatars/`
+
+### Nächste Schritte: Automatische Synchronisation
+
+#### Ziel: Offline-First App mit automatischem Sync
+Die App soll auch ohne Serververbindung vollständig funktionieren und automatisch synchronisieren, sobald eine Verbindung verfügbar ist.
+
+#### Phase 1: Background-Sync Infrastructure
+- [ ] **WorkManager Integration**
+  - [ ] Einmaliger Sync bei App-Start (`OneTimeWorkRequest`)
+  - [ ] Periodischer Sync alle 15 Minuten (`PeriodicWorkRequest`)
+  - [ ] Exponential Backoff bei Fehlern
+  - [ ] Nur bei WLAN-Verbindung (Datenvolumen schonen)
+
+#### Phase 2: Intelligente Sync-Trigger
+- [ ] **App-Lifecycle Events**
+  - [ ] Sync bei App-Start (wenn länger als 5 Min offline)
+  - [ ] Sync bei App-Resume (Background → Foreground)
+  - [ ] Sync bei Netzwerk-Verfügbarkeit
+- [ ] **User-Actions Trigger**
+  - [ ] Automatischer Sync nach neuer/bearbeiteter Review
+  - [ ] Automatischer Sync nach Username/Avatar-Änderung
+  - [ ] Debounced Sync (max. alle 30 Sekunden)
+
+#### Phase 3: Offline-Resilience
+- [ ] **Graceful Degradation**
+  - [ ] Sync-Button entfernen (wird automatisch)
+  - [ ] Subtle Sync-Status Indicator (Online/Offline/Syncing)
+  - [ ] Keine Error-Toasts bei Offline-Betrieb
+- [ ] **Data Consistency**
+  - [ ] Lokale Änderungen haben Priorität
+  - [ ] Server-Änderungen nur übernehmen wenn lokal keine pending changes
+  - [ ] Conflict Resolution: "Last Write Wins" mit Timestamp
+
+#### Phase 4: Performance & UX
+- [ ] **Sync-Optimierung**
+  - [ ] Nur geänderte Daten übertragen (Delta-Sync)
+  - [ ] Batch-Upload für mehrere pending Reviews
+  - [ ] Avatar-Upload Queue für große Dateien
+- [ ] **UI-Verbesserungen**
+  - [ ] Sync-Progress in Notification
+  - [ ] Retry-Mechanismus mit User-Feedback
+  - [ ] Settings: Sync-Häufigkeit konfigurierbar
+
+### Weitere geplante Features
+- [ ] Export/Import von Bewertungen
 - [ ] Fotos zu Bewertungen hinzufügen
 - [ ] Multi-Device Support (gleiche UUID)
-- [ ] Weitere User-Features (Avatar, etc.)
+- [ ] Push-Notifications für neue Reviews
+- [ ] Offline-Maps Integration
