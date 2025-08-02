@@ -110,6 +110,8 @@ class MainActivity : AppCompatActivity() {
                 0,
                 1f
             )
+            // Disable swipe to change tabs - this interferes with map panning
+            isUserInputEnabled = false
         }
         layout.addView(viewPager)
         
