@@ -10,7 +10,7 @@ import com.myreviews.app.domain.model.Review
 class ReviewService(
     private val baseUrl: String
 ) {
-    suspend fun updateReview(reviewId: Long, rating: Float, comment: String, visitDate: String, userId: String): Boolean = 
+    suspend fun updateReview(reviewId: String, rating: Float, comment: String, visitDate: String, userId: String): Boolean = 
         withContext(Dispatchers.IO) {
             try {
                 val url = URL("$baseUrl/api/reviews/$reviewId")
@@ -40,7 +40,7 @@ class ReviewService(
             }
         }
     
-    suspend fun deleteReview(reviewId: Long, userId: String): Boolean = 
+    suspend fun deleteReview(reviewId: String, userId: String): Boolean = 
         withContext(Dispatchers.IO) {
             try {
                 val url = URL("$baseUrl/api/reviews/$reviewId?userId=$userId")

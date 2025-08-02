@@ -23,7 +23,7 @@ class ReviewRepository(
         }
     }
     
-    suspend fun getReviewById(reviewId: Long): Review? {
+    suspend fun getReviewById(reviewId: String): Review? {
         return reviewDao.getReviewById(reviewId)?.toDomainModel()
     }
     
@@ -41,7 +41,7 @@ class ReviewRepository(
         rating: Float,
         comment: String,
         visitDate: Date
-    ): Long {
+    ): String {
         // Hole aktuellen User
         val currentUser = userRepository.ensureDefaultUser()
         
@@ -57,7 +57,8 @@ class ReviewRepository(
             userId = currentUser.userId,
             userName = currentUser.userName
         )
-        return reviewDao.insertReview(entity)
+        reviewDao.insertReview(entity)
+        return entity.id
     }
     
     suspend fun updateReview(review: Review) {
@@ -75,8 +76,8 @@ class ReviewRepository(
     }
     
     suspend fun updateUserNameInReviews(userId: String, newUserName: String) {
-        // Aktualisiere alle Reviews eines Users mit dem neuen Namen
-        reviewDao.updateUserNameInReviews(userId, newUserName)
+        // Aktualisiere alle Reviews eines Users mit dem neuen Namen und setze updatedAt
+        reviewDao.updateUserNameInReviews(userId, newUserName, Date())
     }
     
     suspend fun getRestaurantStats(restaurantId: Long): RestaurantStats {
@@ -89,7 +90,7 @@ class ReviewRepository(
         return reviewDao.getUnsyncedReviews().map { it.toDomainModel() }
     }
     
-    suspend fun markAsSynced(reviewId: Long) {
+    suspend fun markAsSynced(reviewId: String) {
         reviewDao.updateSyncedAt(reviewId, Date())
     }
     

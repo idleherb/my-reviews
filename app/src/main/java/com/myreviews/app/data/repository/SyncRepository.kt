@@ -90,7 +90,7 @@ class SyncRepository(
             var insertedCount = 0
             for (remote in syncResponse.allReviews) {
                 val entity = ReviewEntity(
-                    id = remote.id,
+                    id = remote.id, // Use the UUID from server
                     restaurantId = remote.restaurantId,
                     restaurantName = remote.restaurantName,
                     restaurantLat = remote.restaurantLat,

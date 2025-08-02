@@ -134,7 +134,7 @@ class SyncService(
                 for (i in 0 until jsonArray.length()) {
                     val obj = jsonArray.getJSONObject(i)
                     reviews.add(RemoteReview(
-                        id = obj.getLong("id"),
+                        id = obj.getString("id"),
                         restaurantId = obj.getLong("restaurant_id"),
                         restaurantName = obj.getString("restaurant_name"),
                         restaurantLat = obj.getDouble("restaurant_lat"),
@@ -265,7 +265,7 @@ class SyncService(
         }
     }
     
-    suspend fun deleteReview(reviewId: Long, userId: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun deleteReview(reviewId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val url = URL("$baseUrl/api/reviews/$reviewId?userId=$userId")
             val connection = url.openConnection() as HttpURLConnection
@@ -340,7 +340,7 @@ class SyncService(
                     }
                     
                     allReviews.add(RemoteReview(
-                        id = obj.getLong("id"),
+                        id = obj.getString("id"),
                         restaurantId = obj.getLong("restaurant_id"),
                         restaurantName = obj.getString("restaurant_name"),
                         restaurantLat = obj.getDouble("restaurant_lat"),
@@ -389,7 +389,7 @@ class SyncService(
                 for (i in 0 until jsonArray.length()) {
                     val obj = jsonArray.getJSONObject(i)
                     reviews.add(RemoteReview(
-                        id = obj.getLong("id"),
+                        id = obj.getString("id"),
                         restaurantId = obj.getLong("restaurant_id"),
                         restaurantName = obj.getString("restaurant_name"),
                         restaurantLat = obj.getDouble("restaurant_lat"),
@@ -424,7 +424,7 @@ sealed class SyncResult {
 }
 
 data class RemoteReview(
-    val id: Long,
+    val id: String,
     val restaurantId: Long,
     val restaurantName: String,
     val restaurantLat: Double,

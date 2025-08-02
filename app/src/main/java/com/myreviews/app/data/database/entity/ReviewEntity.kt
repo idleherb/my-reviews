@@ -6,8 +6,8 @@ import java.util.Date
 
 @Entity(tableName = "reviews")
 data class ReviewEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = java.util.UUID.randomUUID().toString(),
     val restaurantId: Long,
     val restaurantName: String,
     val restaurantLat: Double,

@@ -4,7 +4,7 @@ import java.util.Date
 
 data class Reaction(
     val id: Long = 0,
-    val reviewId: Long,
+    val reviewId: String,
     val userId: String,
     val userName: String,
     val emoji: String,

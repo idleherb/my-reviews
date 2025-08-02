@@ -30,7 +30,7 @@ class AddReviewActivity : AppCompatActivity() {
     private var selectedDate: Date = Date()
     private val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMAN)
     private var isEditMode = false
-    private var reviewId: Long = 0
+    private var reviewId: String = ""
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +38,7 @@ class AddReviewActivity : AppCompatActivity() {
         // Prüfe ob Edit-Modus
         isEditMode = intent.getBooleanExtra("edit_mode", false)
         if (isEditMode) {
-            reviewId = intent.getLongExtra("review_id", 0)
+            reviewId = intent.getStringExtra("review_id") ?: ""
         }
         
         // Restaurant-Daten aus Intent holen
@@ -310,7 +310,7 @@ class AddReviewActivity : AppCompatActivity() {
                         val updatedReview = review.copy(
                             rating = rating,
                             comment = comment,
-                            visitDate = selectedDate,
+                            // visitDate bleibt unverändert beim Update
                             updatedAt = Date()
                         )
                         withContext(Dispatchers.IO) {

@@ -16,7 +16,7 @@ import java.util.UUID
 
 @Database(
     entities = [ReviewEntity::class, User::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -97,6 +97,53 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Reviews auf UUID-basierte IDs umstellen
+                database.execSQL(
+                    """CREATE TABLE reviews_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        restaurantId INTEGER NOT NULL,
+                        restaurantName TEXT NOT NULL,
+                        restaurantLat REAL NOT NULL,
+                        restaurantLon REAL NOT NULL,
+                        restaurantAddress TEXT NOT NULL,
+                        rating REAL NOT NULL,
+                        comment TEXT NOT NULL,
+                        visitDate INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        userId TEXT NOT NULL,
+                        userName TEXT NOT NULL,
+                        syncedAt INTEGER,
+                        isDeleted INTEGER NOT NULL DEFAULT 0
+                    )"""
+                )
+                
+                // Daten mit neuen UUIDs kopieren
+                database.execSQL(
+                    """INSERT INTO reviews_new (
+                        id, restaurantId, restaurantName, restaurantLat, restaurantLon,
+                        restaurantAddress, rating, comment, visitDate, createdAt,
+                        updatedAt, userId, userName, syncedAt, isDeleted
+                    )
+                    SELECT 
+                        lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-' || '4' || 
+                        substr(hex(randomblob(2)), 2) || '-' || 
+                        substr('89ab', 1 + (abs(random()) % 4), 1) || 
+                        substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),
+                        restaurantId, restaurantName, restaurantLat, restaurantLon,
+                        restaurantAddress, rating, comment, visitDate, createdAt,
+                        updatedAt, userId, userName, syncedAt, isDeleted
+                    FROM reviews"""
+                )
+                
+                // Alte Tabelle löschen und neue umbenennen
+                database.execSQL("DROP TABLE reviews")
+                database.execSQL("ALTER TABLE reviews_new RENAME TO reviews")
+            }
+        }
+        
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -104,7 +151,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "myreviews_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
                 INSTANCE = instance
                 instance

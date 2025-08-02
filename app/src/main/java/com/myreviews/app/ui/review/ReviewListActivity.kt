@@ -75,7 +75,7 @@ class ReviewListActivity : AppCompatActivity() {
         
         override fun getCount() = reviews.size
         override fun getItem(position: Int) = reviews[position]
-        override fun getItemId(position: Int) = reviews[position].id
+        override fun getItemId(position: Int) = reviews[position].id.hashCode().toLong()
         
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             val review = reviews[position]

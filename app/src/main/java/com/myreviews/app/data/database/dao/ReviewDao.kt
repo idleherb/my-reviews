@@ -14,13 +14,13 @@ interface ReviewDao {
     fun getReviewsForRestaurant(restaurantId: Long): Flow<List<ReviewEntity>>
     
     @Query("SELECT * FROM reviews WHERE id = :reviewId")
-    suspend fun getReviewById(reviewId: Long): ReviewEntity?
+    suspend fun getReviewById(reviewId: String): ReviewEntity?
     
     @Query("SELECT * FROM reviews WHERE restaurantId = :restaurantId ORDER BY visitDate DESC LIMIT 1")
     suspend fun getLatestReviewForRestaurant(restaurantId: Long): ReviewEntity?
     
     @Insert
-    suspend fun insertReview(review: ReviewEntity): Long
+    suspend fun insertReview(review: ReviewEntity)
     
     @Update
     suspend fun updateReview(review: ReviewEntity)
@@ -34,17 +34,17 @@ interface ReviewDao {
     @Query("SELECT COUNT(*) FROM reviews WHERE restaurantId = :restaurantId")
     suspend fun getReviewCountForRestaurant(restaurantId: Long): Int
     
-    @Query("UPDATE reviews SET userName = :newUserName WHERE userId = :userId")
-    suspend fun updateUserNameInReviews(userId: String, newUserName: String)
+    @Query("UPDATE reviews SET userName = :newUserName, updatedAt = :updatedAt WHERE userId = :userId")
+    suspend fun updateUserNameInReviews(userId: String, newUserName: String, updatedAt: Date)
     
     @Query("SELECT * FROM reviews WHERE (syncedAt IS NULL OR updatedAt > syncedAt) OR isDeleted = 1")
     suspend fun getUnsyncedReviews(): List<ReviewEntity>
     
     @Query("UPDATE reviews SET syncedAt = :syncedAt WHERE id = :reviewId")
-    suspend fun updateSyncedAt(reviewId: Long, syncedAt: Date)
+    suspend fun updateSyncedAt(reviewId: String, syncedAt: Date)
     
     @Query("UPDATE reviews SET isDeleted = 1, updatedAt = :updatedAt WHERE id = :reviewId")
-    suspend fun markAsDeleted(reviewId: Long, updatedAt: Date)
+    suspend fun markAsDeleted(reviewId: String, updatedAt: Date)
     
     @Query("DELETE FROM reviews WHERE isDeleted = 1 AND syncedAt IS NOT NULL")
     suspend fun deleteAllSyncedDeletedReviews()

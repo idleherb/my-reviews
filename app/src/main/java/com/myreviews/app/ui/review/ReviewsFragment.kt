@@ -27,6 +27,7 @@ import android.util.Log
 import java.net.HttpURLConnection
 import java.net.URL
 import android.content.Context
+import android.content.res.ColorStateList
 
 class ReviewsFragment : Fragment() {
     
@@ -34,6 +35,7 @@ class ReviewsFragment : Fragment() {
     private lateinit var emptyView: TextView
     private lateinit var searchEditText: EditText
     private lateinit var sortSpinner: Spinner
+    private lateinit var syncButton: com.google.android.material.button.MaterialButton
     private val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.GERMAN)
     private val reviewRepository = AppModule.reviewRepository
     private var allReviews: List<Review> = emptyList()
@@ -52,10 +54,15 @@ class ReviewsFragment : Fragment() {
     
     override fun onResume() {
         super.onResume()
+        // Update sync button visibility
+        if (::syncButton.isInitialized) {
+            syncButton.visibility = if (isCloudSyncEnabled()) View.VISIBLE else View.GONE
+        }
         // Force refresh der Liste um Avatar-Änderungen zu reflektieren
         if (::listView.isInitialized && allReviews.isNotEmpty()) {
             // Erstelle einen neuen Adapter um View-Caching zu umgehen
             listView.adapter = ReviewAdapter(filteredReviews)
+            Log.d("ReviewsFragment", "Refreshed adapter in onResume for avatar changes")
         }
     }
     
@@ -78,38 +85,21 @@ class ReviewsFragment : Fragment() {
         val controlsLayout = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16, 16, 16, 16)
-            setBackgroundColor(0xFFF5F5F5.toInt())
+            // Remove gray background for Material Design consistency
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
         
-        // Sync Button (nur wenn Cloud Sync aktiviert ist)
-        if (isCloudSyncEnabled()) {
-            val syncButton = com.google.android.material.button.MaterialButton(
-                requireContext(), 
-                null, 
-                com.google.android.material.R.attr.borderlessButtonStyle
-            ).apply {
-                text = "Synchronisieren"
-                icon = androidx.core.content.res.ResourcesCompat.getDrawable(
-                    resources,
-                    android.R.drawable.ic_popup_sync,
-                    null
-                )
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(0, 0, 0, 16)
-                }
-                
-                setOnClickListener {
-                    performSync(this)
-                }
-            }
-            controlsLayout.addView(syncButton)
+        // Search row with sync button
+        val searchRow = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            gravity = android.view.Gravity.CENTER_VERTICAL
         }
         
         // Suchfeld
@@ -119,9 +109,12 @@ class ReviewsFragment : Fragment() {
             setBackgroundResource(android.R.drawable.edit_text)
             setPadding(16, 16, 16, 16)
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // Take remaining space
+            ).apply {
+                setMargins(0, 0, 8, 0)
+            }
             addTextChangedListener(object : android.text.TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -130,7 +123,34 @@ class ReviewsFragment : Fragment() {
                 }
             })
         }
-        controlsLayout.addView(searchEditText)
+        searchRow.addView(searchEditText)
+        
+        // Sync Button (nur Icon, kein Text)
+        syncButton = com.google.android.material.button.MaterialButton(
+            requireContext(), 
+            null, 
+            com.google.android.material.R.attr.materialIconButtonStyle
+        ).apply {
+            icon = androidx.core.content.res.ResourcesCompat.getDrawable(
+                resources,
+                android.R.drawable.ic_popup_sync,
+                null
+            )
+            iconTint = ColorStateList.valueOf(0xFF666666.toInt()) // Neutrales Grau wie andere Icons
+            contentDescription = "Synchronisieren"
+            
+            val size = (48 * resources.displayMetrics.density).toInt()
+            layoutParams = LinearLayout.LayoutParams(size, size)
+            
+            visibility = if (isCloudSyncEnabled()) View.VISIBLE else View.GONE
+            
+            setOnClickListener {
+                performSync(this)
+            }
+        }
+        searchRow.addView(syncButton)
+        
+        controlsLayout.addView(searchRow)
         
         // Sortierung
         val sortLayout = LinearLayout(requireContext()).apply {
@@ -278,8 +298,8 @@ class ReviewsFragment : Fragment() {
         
         // Sortieren
         filteredReviews = when (sortSpinner.selectedItemPosition) {
-            0 -> filteredReviews.sortedByDescending { it.visitDate } // Datum (neueste zuerst)
-            1 -> filteredReviews.sortedBy { it.visitDate } // Datum (älteste zuerst)
+            0 -> filteredReviews.sortedWith(compareByDescending<Review> { it.visitDate }.thenByDescending { it.createdAt }) // Datum (neueste zuerst), dann nach Erstellungszeit
+            1 -> filteredReviews.sortedWith(compareBy<Review> { it.visitDate }.thenBy { it.createdAt }) // Datum (älteste zuerst), dann nach Erstellungszeit
             2 -> filteredReviews.sortedByDescending { it.rating } // Bewertung (beste zuerst)
             3 -> filteredReviews.sortedBy { it.rating } // Bewertung (schlechteste zuerst)
             4 -> filteredReviews.sortedBy { it.restaurantName } // Restaurant (A-Z)
@@ -309,7 +329,7 @@ class ReviewsFragment : Fragment() {
         
         override fun getCount() = reviews.size
         override fun getItem(position: Int) = reviews[position]
-        override fun getItemId(position: Int) = reviews[position].id
+        override fun getItemId(position: Int) = reviews[position].id.hashCode().toLong()
         
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             val review = reviews[position]
@@ -326,6 +346,8 @@ class ReviewsFragment : Fragment() {
                 setBackgroundResource(android.R.drawable.list_selector_background)
                 // Minimum Height für Touch-Target
                 minimumHeight = (56 * resources.displayMetrics.density).toInt()
+                
+                // Kein spezieller Hintergrund für fremde Reviews mehr
             }
             
             // Hauptinhalt (klickbar für Navigation)
@@ -395,9 +417,15 @@ class ReviewsFragment : Fragment() {
             // Debug logging
             Log.d("ReviewsFragment", "Review: ${review.restaurantName}, userId: ${review.userId}, currentUserId: $currentUserId, isOwn: ${isOwnReview(review)}")
             
-            // Reaktions-Leiste (nur wenn Cloud-Sync aktiviert ist und es nicht die eigene Bewertung ist)
-            if (isCloudSyncEnabled() && !isOwnReview(review)) {
-                contentLayout.addView(createReactionBar(review))
+            // Reaktions-Leiste anzeigen wenn Cloud-Sync aktiviert ist
+            if (isCloudSyncEnabled()) {
+                if (!isOwnReview(review)) {
+                    // Bei fremden Reviews: Reaktionen mit "Add" Button
+                    contentLayout.addView(createReactionBar(review))
+                } else if (review.reactionCounts.any { it.value > 0 }) {
+                    // Bei eigenen Reviews: Nur Reaktionen anzeigen, ohne "Add" Button
+                    contentLayout.addView(createReactionDisplay(review))
+                }
             }
             
             itemView.addView(contentLayout)
@@ -581,19 +609,34 @@ class ReviewsFragment : Fragment() {
             
             // Reaktionen anzeigen
             reactionsWithCounts.forEach { (emoji, count) ->
-                addView(createReactionChip(emoji, count, true) {
+                addView(createReactionChip(emoji, count, true, true) {
                     handleReactionClick(review, emoji)
                 })
             }
             
             // "Add Reaction" Button (graues Smiley)
-            addView(createReactionChip("😊", 0, false) {
+            addView(createReactionChip("😊", 0, false, true) {
                 showReactionPicker(review)
             })
         }
     }
     
-    private fun createReactionChip(emoji: String, count: Int, showCount: Boolean, onClick: () -> Unit): View {
+    private fun createReactionDisplay(review: Review): View {
+        return LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 16, 0, 8)
+            
+            // Nur Emojis mit Reaktionen anzeigen
+            val reactionsWithCounts = review.reactionCounts.filter { it.value > 0 }
+            
+            // Reaktionen anzeigen (nicht klickbar)
+            reactionsWithCounts.forEach { (emoji, count) ->
+                addView(createReactionChip(emoji, count, true, clickable = false))
+            }
+        }
+    }
+    
+    private fun createReactionChip(emoji: String, count: Int, showCount: Boolean, clickable: Boolean = true, onClick: (() -> Unit)? = null): View {
         return TextView(requireContext()).apply {
             text = if (showCount && count > 0) "$emoji $count" else emoji
             textSize = 16f
@@ -614,10 +657,14 @@ class ReviewsFragment : Fragment() {
                 setTextColor(0xFF333333.toInt())
             }
             
-            isClickable = true
-            isFocusable = true
-            
-            setOnClickListener { onClick() }
+            if (clickable && onClick != null) {
+                isClickable = true
+                isFocusable = true
+                setOnClickListener { onClick() }
+            } else {
+                isClickable = false
+                isFocusable = false
+            }
             
             // Add margin between chips
             (layoutParams as? LinearLayout.LayoutParams)?.apply {

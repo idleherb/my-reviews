@@ -3,7 +3,7 @@ package com.myreviews.app.domain.model
 import java.util.Date
 
 data class Review(
-    val id: Long = 0,
+    val id: String = java.util.UUID.randomUUID().toString(),
     val restaurantId: Long,
     val restaurantName: String,
     val restaurantLat: Double,

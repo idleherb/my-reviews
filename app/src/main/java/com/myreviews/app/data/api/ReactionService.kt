@@ -15,7 +15,7 @@ class ReactionService(
         val counts: Map<String, Int>
     )
     
-    suspend fun getReactions(reviewId: Long): ReactionResponse = withContext(Dispatchers.IO) {
+    suspend fun getReactions(reviewId: String): ReactionResponse = withContext(Dispatchers.IO) {
         try {
             val url = URL("$baseUrl/api/reactions/review/$reviewId")
             val connection = url.openConnection() as HttpURLConnection
@@ -32,7 +32,7 @@ class ReactionService(
                     val obj = reactionsArray.getJSONObject(i)
                     reactions.add(Reaction(
                         id = obj.getLong("id"),
-                        reviewId = obj.getLong("review_id"),
+                        reviewId = obj.getString("review_id"),
                         userId = obj.getString("user_id"),
                         userName = obj.getString("user_name"),
                         emoji = obj.getString("emoji")
@@ -58,7 +58,7 @@ class ReactionService(
         }
     }
     
-    suspend fun addReaction(reviewId: Long, userId: String, emoji: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun addReaction(reviewId: String, userId: String, emoji: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val url = URL("$baseUrl/api/reactions/review/$reviewId")
             val connection = url.openConnection() as HttpURLConnection
@@ -84,7 +84,7 @@ class ReactionService(
         }
     }
     
-    suspend fun removeReaction(reviewId: Long, userId: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun removeReaction(reviewId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val url = URL("$baseUrl/api/reactions/review/$reviewId/user/$userId")
             val connection = url.openConnection() as HttpURLConnection

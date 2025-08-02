@@ -47,6 +47,7 @@ class SettingsActivity : AppCompatActivity() {
     
     private lateinit var sharedPrefs: SharedPreferences
     private var connectionTestPassed = false
+    private var connectionTestPerformed = false
     private var currentUserId: String = ""
     
     private val pickImageLauncher = registerForActivityResult(
@@ -562,23 +563,21 @@ class SettingsActivity : AppCompatActivity() {
     private fun updateUIState() {
         val isCloudSyncEnabled = cloudSyncSwitch.isChecked
         
-        // Save Button nur aktivieren wenn:
-        // 1. Cloud-Sync aus ist ODER
-        // 2. Cloud-Sync an ist UND Verbindungstest erfolgreich war
-        val canSave = !isCloudSyncEnabled || connectionTestPassed
+        // Save Button nur deaktivieren wenn:
+        // Cloud-Sync an ist UND Verbindungstest durchgeführt wurde UND fehlgeschlagen ist
+        val canSave = !isCloudSyncEnabled || !connectionTestPerformed || connectionTestPassed
         saveButton.isEnabled = canSave
         
-        // Save Button visuell anpassen
+        // Save Button visuell anpassen (Material Design)
         if (canSave) {
-            saveButton.setBackgroundColor(0xFF4CAF50.toInt()) // Grün
-            saveButton.setTextColor(0xFFFFFFFF.toInt()) // Weiß
+            saveButton.alpha = 1f
         } else {
-            saveButton.setBackgroundColor(0xFFCCCCCC.toInt()) // Grau
-            saveButton.setTextColor(0xFF666666.toInt()) // Dunkelgrau
+            saveButton.alpha = 0.5f
         }
         
         if (!isCloudSyncEnabled) {
             statusContainer.visibility = View.GONE
+            connectionTestPerformed = false // Reset wenn Cloud-Sync deaktiviert wird
         }
     }
     
@@ -659,10 +658,12 @@ class SettingsActivity : AppCompatActivity() {
         val port = serverPortEditText.text.toString().trim()
         
         if (url.isEmpty() || port.isEmpty()) {
-            showStatus("Bitte Server-Adresse und Port eingeben", StatusType.ERROR)
+            Toast.makeText(this, "Bitte Server-Adresse und Port eingeben", Toast.LENGTH_SHORT).show()
             return
         }
         
+        // Zeige Loading-Status während des Tests
+        statusContainer.visibility = View.VISIBLE
         showStatus("Teste Verbindung...", StatusType.LOADING)
         
         CoroutineScope(Dispatchers.Main).launch {
@@ -684,12 +685,16 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
             
+            connectionTestPerformed = true
+            
             if (result) {
                 connectionTestPassed = true
-                showStatus("Verbindung erfolgreich!", StatusType.SUCCESS)
+                Toast.makeText(this@SettingsActivity, "Verbindung erfolgreich!", Toast.LENGTH_SHORT).show()
+                statusContainer.visibility = View.GONE
             } else {
                 connectionTestPassed = false
-                showStatus("Keine Verbindung zum Server möglich", StatusType.ERROR)
+                Toast.makeText(this@SettingsActivity, "Keine Verbindung zum Server möglich", Toast.LENGTH_LONG).show()
+                statusContainer.visibility = View.GONE
             }
             updateUIState()
         }
@@ -708,13 +713,11 @@ class SettingsActivity : AppCompatActivity() {
                 // Alle Reviews dieses Users aktualisieren
                 AppModule.reviewRepository.updateUserNameInReviews(currentUser.userId, newUserName)
                 
-                // Bei Cloud-Sync: Dialog zeigen
+                // Bei Cloud-Sync: Info zeigen
                 if (cloudSyncSwitch.isChecked && currentUser.userName == "Anonym" && newUserName != "Anonym") {
-                    com.google.android.material.dialog.MaterialAlertDialogBuilder(this@SettingsActivity)
-                        .setTitle("Benutzername für Cloud-Sync")
-                        .setMessage("Deine Bewertungen werden jetzt mit dem Namen '$newUserName' synchronisiert.")
-                        .setPositiveButton("OK", null)
-                        .show()
+                    Toast.makeText(this@SettingsActivity,
+                        "Deine Bewertungen werden jetzt mit dem Namen '$newUserName' synchronisiert.",
+                        Toast.LENGTH_LONG).show()
                 }
             }
             
@@ -758,10 +761,10 @@ class SettingsActivity : AppCompatActivity() {
             when (result) {
                 is SyncResult.Success -> {
                     val message = result.message ?: "${result.syncedCount} Bewertungen synchronisiert"
-                    showStatus(message, StatusType.SUCCESS)
+                    Toast.makeText(this@SettingsActivity, message, Toast.LENGTH_SHORT).show()
                 }
                 is SyncResult.Error -> {
-                    showStatus("Sync fehlgeschlagen: ${result.message}", StatusType.ERROR)
+                    Toast.makeText(this@SettingsActivity, "Sync fehlgeschlagen: ${result.message}", Toast.LENGTH_LONG).show()
                 }
             }
             
@@ -796,16 +799,19 @@ class SettingsActivity : AppCompatActivity() {
                     withContext(Dispatchers.Main) {
                         // Show the uploaded image
                         avatarImageView.setImageURI(uri)
-                        showStatus("Profilbild hochgeladen", StatusType.SUCCESS)
+                        Toast.makeText(this@SettingsActivity, "Profilbild hochgeladen", Toast.LENGTH_SHORT).show()
+                        
+                        // Notify other components about avatar change
+                        setResult(RESULT_OK)
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        showStatus("Fehler beim Hochladen", StatusType.ERROR)
+                        Toast.makeText(this@SettingsActivity, "Fehler beim Hochladen", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    showStatus("Fehler: ${e.message}", StatusType.ERROR)
+                    Toast.makeText(this@SettingsActivity, "Fehler: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -836,16 +842,19 @@ class SettingsActivity : AppCompatActivity() {
                     
                     withContext(Dispatchers.Main) {
                         avatarImageView.setImageResource(android.R.drawable.ic_menu_gallery)
-                        showStatus("Profilbild gelöscht", StatusType.SUCCESS)
+                        Toast.makeText(this@SettingsActivity, "Profilbild gelöscht", Toast.LENGTH_SHORT).show()
+                        
+                        // Notify other components about avatar change
+                        setResult(RESULT_OK)
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        showStatus("Fehler beim Löschen", StatusType.ERROR)
+                        Toast.makeText(this@SettingsActivity, "Fehler beim Löschen", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    showStatus("Fehler: ${e.message}", StatusType.ERROR)
+                    Toast.makeText(this@SettingsActivity, "Fehler: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
