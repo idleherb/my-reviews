@@ -377,6 +377,12 @@ services:
 - **Lösung**: `isUserInputEnabled = false` im ViewPager2
 - **Resultat**: Karte frei beweglich, Tabs nur per Klick wechselbar
 
+#### 4. Custom App-Icon
+- **Design**: Blauer Kreis mit weißem Restaurant-Symbol (Gabel & Messer)
+- **Adaptive Icon**: Unterstützt verschiedene Icon-Formen ab Android 8.0
+- **Farbe**: Material Blue (#2196F3) - passend zu den Karten-Markern
+- **Hinweis**: Toast-Icons in Android 12+ werden automatisch vom System angezeigt
+
 ### 📝 Entwicklungsprozess-Dokumentation
 
 **Wichtig**: Jeder inhaltliche Entwicklungsschritt wird:
