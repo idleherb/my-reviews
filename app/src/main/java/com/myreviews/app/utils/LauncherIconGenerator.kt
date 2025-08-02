@@ -52,8 +52,8 @@ object LauncherIconGenerator {
         // Draw blue circle
         canvas.drawCircle(centerX, centerY, radius, paint)
         
-        // Draw restaurant icon
-        drawRestaurantIcon(context, canvas, centerX, centerY, radius * 0.6f)
+        // Draw restaurant icon (increased by ~30%)
+        drawRestaurantIcon(context, canvas, centerX, centerY, radius * 0.78f)
         
         return bitmap
     }
@@ -68,8 +68,8 @@ object LauncherIconGenerator {
         val centerX = size / 2f
         val centerY = size / 2f
         
-        // Draw restaurant icon (larger for adaptive icon)
-        drawRestaurantIcon(context, canvas, centerX, centerY, size * 0.25f)
+        // Draw restaurant icon (larger for adaptive icon, increased by ~30%)
+        drawRestaurantIcon(context, canvas, centerX, centerY, size * 0.325f)
         
         return bitmap
     }
