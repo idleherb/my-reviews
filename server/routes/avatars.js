@@ -66,9 +66,9 @@ router.post('/:userId', upload.single('avatar'), async (req, res) => {
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
     const result = await pool.query(
       `UPDATE users 
-       SET avatar_url = $1, avatar_uploaded_at = NOW()
+       SET avatar_url = $1, updated_at = NOW()
        WHERE user_id = $2
-       RETURNING user_id, user_name, avatar_url, avatar_uploaded_at`,
+       RETURNING user_id, user_name, avatar_url, updated_at`,
       [avatarUrl, userId]
     );
     
@@ -114,7 +114,7 @@ router.delete('/:userId', async (req, res) => {
     
     // Update database
     await pool.query(
-      'UPDATE users SET avatar_url = NULL, avatar_uploaded_at = NULL WHERE user_id = $1',
+      'UPDATE users SET avatar_url = NULL, updated_at = NOW() WHERE user_id = $1',
       [userId]
     );
     

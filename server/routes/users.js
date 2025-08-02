@@ -25,6 +25,8 @@ router.get('/:userId', async (req, res) => {
 
 // Create or update user
 router.put('/:userId', async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { userId } = req.params;
     const { userName } = req.body;
@@ -33,8 +35,10 @@ router.put('/:userId', async (req, res) => {
       return res.status(400).json({ error: 'userName is required' });
     }
     
+    await client.query('BEGIN');
+    
     // Upsert user
-    const result = await pool.query(
+    const result = await client.query(
       `INSERT INTO users (user_id, user_name) 
        VALUES ($1, $2) 
        ON CONFLICT (user_id) 
@@ -43,10 +47,23 @@ router.put('/:userId', async (req, res) => {
       [userId, userName]
     );
     
+    // Update all reviews from this user with the new username
+    await client.query(
+      `UPDATE reviews 
+       SET user_name = $1, updated_at = NOW() 
+       WHERE user_id = $2`,
+      [userName, userId]
+    );
+    
+    await client.query('COMMIT');
+    
     res.json(result.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error upserting user:', error);
     res.status(500).json({ error: 'Failed to upsert user' });
+  } finally {
+    client.release();
   }
 });
 

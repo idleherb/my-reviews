@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
       params.push(since);
     }
     
-    query += ' ORDER BY visit_date DESC';
+    query += ' ORDER BY visit_date DESC, created_at DESC';
     
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -44,7 +44,7 @@ router.post('/sync/pull', async (req, res) => {
               created_at, updated_at, reaction_counts
        FROM reviews
        WHERE is_deleted = false
-       ORDER BY visit_date DESC`
+       ORDER BY visit_date DESC, created_at DESC`
     );
     
     // Filter out reviews where local version is newer
@@ -94,7 +94,7 @@ router.get('/user/:userId', async (req, res) => {
       params.push(since);
     }
     
-    query += ' ORDER BY visit_date DESC';
+    query += ' ORDER BY visit_date DESC, created_at DESC';
     
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -115,7 +115,7 @@ router.get('/restaurant/:restaurantId', async (req, res) => {
               created_at, updated_at, reaction_counts
        FROM reviews
        WHERE restaurant_id = $1
-       ORDER BY visit_date DESC`,
+       ORDER BY visit_date DESC, created_at DESC`,
       [restaurantId]
     );
     
@@ -132,6 +132,7 @@ router.post('/', async (req, res) => {
   
   try {
     const {
+      id,
       restaurantId,
       restaurantName,
       restaurantLat,
@@ -167,16 +168,16 @@ router.post('/', async (req, res) => {
       [userId, userName]
     );
     
-    // Insert review
+    // Insert review with client-generated UUID
     const result = await client.query(
       `INSERT INTO reviews 
-       (restaurant_id, restaurant_name, restaurant_lat, restaurant_lon, 
+       (id, restaurant_id, restaurant_name, restaurant_lat, restaurant_lon, 
         restaurant_address, rating, comment, visit_date, user_id, user_name,
         created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 
-               COALESCE($11, NOW()), COALESCE($12, NOW()))
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+               COALESCE($12, NOW()), COALESCE($13, NOW()))
        RETURNING *`,
-      [restaurantId, restaurantName, restaurantLat, restaurantLon, 
+      [id, restaurantId, restaurantName, restaurantLat, restaurantLon, 
        restaurantAddress, rating, comment, visitDate, userId, userName,
        createdAt, updatedAt]
     );
@@ -307,7 +308,7 @@ router.post('/sync', async (req, res) => {
     for (const review of reviews) {
       console.log(`Processing review: id=${review.id}, restaurant=${review.restaurantName}, userId=${review.userId}, isDeleted=${review.isDeleted}`);
       
-      if (review.isDeleted && review.id > 0) {
+      if (review.isDeleted && review.id) {
         // Soft delete on server
         await client.query(
           'UPDATE reviews SET is_deleted = true, updated_at = NOW() WHERE id = $1',
@@ -343,11 +344,11 @@ router.post('/sync', async (req, res) => {
           console.log(`Inserting new review for ${review.restaurantName} by user ${review.userId}`);
           await client.query(
             `INSERT INTO reviews 
-             (restaurant_id, restaurant_name, restaurant_lat, restaurant_lon, 
+             (id, restaurant_id, restaurant_name, restaurant_lat, restaurant_lon, 
               restaurant_address, rating, comment, visit_date, user_id, user_name,
               created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-            [review.restaurantId, review.restaurantName, review.restaurantLat,
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+            [review.id, review.restaurantId, review.restaurantName, review.restaurantLat,
              review.restaurantLon, review.restaurantAddress, review.rating,
              review.comment, review.visitDate, review.userId, review.userName,
              review.createdAt || new Date(), review.updatedAt || new Date()]
@@ -366,7 +367,7 @@ router.post('/sync', async (req, res) => {
               created_at, updated_at, reaction_counts
        FROM reviews
        WHERE is_deleted = false
-       ORDER BY visit_date DESC`
+       ORDER BY visit_date DESC, created_at DESC`
     );
     
     console.log(`Returning ${allReviews.rows.length} reviews to client`);
