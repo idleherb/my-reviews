@@ -381,7 +381,18 @@ services:
 - **Design**: Blauer Kreis mit weißem Restaurant-Symbol (Gabel & Messer)
 - **Adaptive Icon**: Unterstützt verschiedene Icon-Formen ab Android 8.0
 - **Farbe**: Material Blue (#2196F3) - passend zu den Karten-Markern
+- **Icon-Größe**: Symbol um 30% vergrößert für bessere Sichtbarkeit
 - **Hinweis**: Toast-Icons in Android 12+ werden automatisch vom System angezeigt
+
+#### 5. UI-Verbesserungen (August 2025)
+- **Tab-Layout Fix**: 
+  - "Bewertungen" bricht nicht mehr in nächste Zeile um
+  - `TabLayout.MODE_FIXED` verhindert scrollbare Tabs
+  - `TabLayout.GRAVITY_FILL` verteilt Tabs gleichmäßig
+- **AutoSync Default**: 
+  - Automatisch aktiviert beim Einschalten von Cloud-Sync
+  - Bessere User Experience ohne manuellen Eingriff
+- **Icon-Ressourcen**: Alle PNG-Dateien wiederhergestellt für fehlerfreien Build
 
 ### 📝 Entwicklungsprozess-Dokumentation
 
