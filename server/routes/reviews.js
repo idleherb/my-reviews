@@ -168,16 +168,16 @@ router.post('/', async (req, res) => {
       [userId, userName]
     );
     
-    // Insert review with client-generated UUID
+    // Insert review (let database generate the ID)
     const result = await client.query(
       `INSERT INTO reviews 
-       (id, restaurant_id, restaurant_name, restaurant_lat, restaurant_lon, 
+       (restaurant_id, restaurant_name, restaurant_lat, restaurant_lon, 
         restaurant_address, rating, comment, visit_date, user_id, user_name,
         created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-               COALESCE($12, NOW()), COALESCE($13, NOW()))
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+               COALESCE($11, NOW()), COALESCE($12, NOW()))
        RETURNING *`,
-      [id, restaurantId, restaurantName, restaurantLat, restaurantLon, 
+      [restaurantId, restaurantName, restaurantLat, restaurantLon, 
        restaurantAddress, rating, comment, visitDate, userId, userName,
        createdAt, updatedAt]
     );
@@ -344,11 +344,11 @@ router.post('/sync', async (req, res) => {
           console.log(`Inserting new review for ${review.restaurantName} by user ${review.userId}`);
           await client.query(
             `INSERT INTO reviews 
-             (id, restaurant_id, restaurant_name, restaurant_lat, restaurant_lon, 
+             (restaurant_id, restaurant_name, restaurant_lat, restaurant_lon, 
               restaurant_address, rating, comment, visit_date, user_id, user_name,
               created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-            [review.id, review.restaurantId, review.restaurantName, review.restaurantLat,
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+            [review.restaurantId, review.restaurantName, review.restaurantLat,
              review.restaurantLon, review.restaurantAddress, review.rating,
              review.comment, review.visitDate, review.userId, review.userName,
              review.createdAt || new Date(), review.updatedAt || new Date()]

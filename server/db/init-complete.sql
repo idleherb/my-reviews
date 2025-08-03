@@ -49,3 +49,15 @@ ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reaction_counts JSONB DEFAULT '{}';
 
 -- Add avatar_url to users
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- Create reactions table
+CREATE TABLE IF NOT EXISTS reactions (
+  id SERIAL PRIMARY KEY,
+  review_id INTEGER NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  reaction_type VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(user_id),
+  UNIQUE(review_id, user_id, reaction_type)
+);
