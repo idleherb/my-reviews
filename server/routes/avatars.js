@@ -8,7 +8,12 @@ const crypto = require('crypto');
 
 // Ensure avatars directory exists
 const AVATARS_DIR = path.join(__dirname, '..', 'uploads', 'avatars');
-fs.mkdir(AVATARS_DIR, { recursive: true }).catch(console.error);
+fs.mkdir(AVATARS_DIR, { recursive: true }).catch(err => {
+  // Only log if it's not a permission error - the directory might already exist
+  if (err.code !== 'EACCES' && err.code !== 'EEXIST') {
+    console.error('Error creating avatars directory:', err);
+  }
+});
 
 // Configure multer for avatar uploads
 const storage = multer.diskStorage({

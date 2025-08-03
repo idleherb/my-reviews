@@ -448,6 +448,35 @@ cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews
 - Ermöglicht zuverlässige Synchronisation auch bei längerer Offline-Zeit
 - Server und Client filtern gelöschte Reviews bei der Anzeige heraus
 
+## Deployment Workflow
+
+### Wichtige Regel
+**ALLE Code- und Konfigurations-Änderungen müssen im Original-Repository gemacht werden!**
+
+Auf dem Server darf nur:
+1. Die `.env` Datei erstellt/bearbeitet werden
+2. `git pull` ausgeführt werden
+
+### Workflow für Änderungen
+1. **Entwicklung**: Änderungen lokal im Repository machen
+2. **Test**: Lokal mit docker-compose testen
+3. **Commit**: Änderungen committen und pushen
+4. **Deploy**: Auf Server pullen
+
+### Server-Deployment Prozess
+1. Repository auf Server clonen
+2. `.env` aus `.env.example` erstellen und Passwörter setzen
+3. Custom App in der Server-UI erstellen (Docker Compose)
+4. Bei Updates: `git pull` und Container neu starten
+
+### Bekannte Issues und Lösungen
+
+#### Avatar Upload Permissions
+Wenn Avatar-Uploads fehlschlagen (EACCES Fehler):
+- **Problem**: Container läuft als non-root User, Volume hat falsche Permissions
+- **Lösung**: Uploads innerhalb des Containers speichern (kein Volume-Mapping)
+- **Alternative**: Named Docker Volume mit korrekten Permissions verwenden
+
 #### Geräte-persistente User ID
 - Basiert auf Android Secure ID (`Settings.Secure.ANDROID_ID`)
 - UUID bleibt gleich, auch nach App-Neuinstallation

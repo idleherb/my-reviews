@@ -30,8 +30,8 @@ services:
       PORT: ${API_PORT}
       NODE_ENV: ${NODE_ENV:-production}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
-    volumes:
-      - ./server/uploads:/app/uploads
+    # Avatar uploads will be stored inside the container
+    # Remove volume mapping to avoid permission issues on TrueNAS
     ports:
       - "${API_PORT}:${API_PORT}"
     depends_on:
