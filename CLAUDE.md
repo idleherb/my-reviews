@@ -1,3 +1,163 @@
+# Restaurant Reviews App - Entwicklerdokumentation für Claude
+
+## 🚨 KRITISCHE ENTWICKLUNGSHINWEISE 🚨
+
+### 1. ARBEITSVERZEICHNISSE - SEHR WICHTIG!
+**Es gibt ZWEI verschiedene Arbeitsverzeichnisse:**
+- **Lokales Repository**: `/Users/eric.hildebrand/dev/public/idleherb/my-reviews` 
+  - Hier werden ALLE Code-Änderungen gemacht
+  - Hier wird entwickelt, getestet und committed
+- **Server-Mount**: `/Volumes/myreviews` 
+  - NUR für Docker-Befehle auf dem TrueNAS Server
+  - NUR für `git pull` und `.env` Bearbeitung
+  - KEINE direkten Code-Änderungen hier!
+
+**IMMER `cd` verwenden** bevor du einen Befehl ausführst!
+
+### 2. GIT WORKFLOW - PFLICHT!
+- **Nach JEDER Änderung**: Kleiner, atomarer Commit
+- **Commit-Messages**: Präzise beschreiben was geändert wurde
+- **CLAUDE.md**: Bei wichtigen Änderungen IMMER diese Datei updaten
+- **Keine Secrets**: NIEMALS Passwörter/Keys committen (→ .env)
+- **Beispiel Workflow**:
+  ```bash
+  cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews
+  # Code ändern
+  git add -A
+  git commit -m "Fix: AutoSync toggle persistence in SettingsActivity"
+  # Bei wichtigen Features:
+  git add CLAUDE.md
+  git commit -m "docs: Update CLAUDE.md with AutoSync implementation details"
+  ```
+
+### 3. DEPLOYMENT WORKFLOW
+```bash
+# 1. IMMER im lokalen Repo entwickeln
+cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews
+# entwickeln, testen, committen...
+
+# 2. Auf Server deployen
+cd /Volumes/myreviews
+git pull
+
+# 3. Docker neu bauen (Version in docker-compose.yml erhöhen!)
+# z.B. myreviews-api:v1.2 → myreviews-api:v1.3
+docker-compose down
+docker-compose build
+docker-compose up -d
+```
+
+### 4. ANDROID DEVELOPMENT
+```bash
+# Build
+cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews
+./gradlew assembleDebug
+
+# Install Emulatoren
+~/Library/Android/sdk/platform-tools/adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+~/Library/Android/sdk/platform-tools/adb -s emulator-5556 install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Install Samsung Galaxy
+~/Library/Android/sdk/platform-tools/adb devices  # Device ID finden
+~/Library/Android/sdk/platform-tools/adb -s R5CY71ZGK5V install -r app/build/outputs/apk/debug/app-debug.apk
+
+# ADB Probleme
+~/Library/Android/sdk/platform-tools/adb kill-server
+~/Library/Android/sdk/platform-tools/adb start-server
+```
+
+### 5. SERVER/BACKEND BEFEHLE
+```bash
+# Lokal entwickeln (mit Auto-Reload)
+cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews/server
+./start-dev.sh
+
+# Docker Logs anschauen
+docker logs myreviews-api -f
+docker logs myreviews-db
+
+# PostgreSQL direkt abfragen
+docker exec myreviews-db psql -U myreviews_user -d myreviews -c "SELECT * FROM reviews;"
+docker exec myreviews-db psql -U myreviews_user -d myreviews -c "\dt"  # Alle Tabellen
+docker exec myreviews-db psql -U myreviews_user -d myreviews -c "\d reviews"  # Tabellen-Schema
+
+# API Health Check
+curl http://localhost:3000/api/health
+```
+
+### 6. HÄUFIGE PROBLEME & LÖSUNGEN
+
+#### AutoSync schaltet sich zufällig aus
+- **Fix**: SharedPreferences direkt laden statt über Manager
+- **Datei**: `SettingsActivity.kt` Zeile 539
+
+#### Tab "Bewertungen" bricht um
+- **Fix**: Minimaler Padding (spacing_xs = 4dp)
+- **Datei**: `MainActivity.kt` Zeile 154-159
+
+#### Docker Image wird nicht aktualisiert
+- **Fix**: Version Tag erhöhen in `docker-compose.yml`
+- **Beispiel**: `myreviews-api:v1.2` → `myreviews-api:v1.3`
+
+#### macOS blockiert Netzwerk-Zugriff
+- **Fix**: System Preferences → Privacy & Security → Local Network → Android Studio aktivieren
+
+#### Reactions table Fehler
+- **Fix**: Schema verwendet "emoji" nicht "reaction_type"
+- **Datei**: `server/db/init-complete.sql`
+
+### 7. WICHTIGE DATEIEN & IHRE FUNKTIONEN
+- **`AppModule.kt`**: Zentrale Dependency Injection, alle Services
+- **`AutoSyncManager.kt`**: Automatische Synchronisation
+- **`SyncService.kt`**: API-Kommunikation mit Server
+- **`docker-compose.yml`**: Container-Konfiguration (Version-Tags!)
+- **`server/db/init-complete.sql`**: Komplettes DB-Schema
+- **`.env`**: Umgebungsvariablen (NIE committen!)
+- **`.env.example`**: Template für .env
+
+### 8. TESTING CHECKLISTE
+- [ ] Build erfolgreich (`./gradlew assembleDebug`)
+- [ ] Installation auf Emulator 5554
+- [ ] Installation auf Emulator 5556
+- [ ] Installation auf echtem Gerät
+- [ ] Cloud-Sync Verbindungstest
+- [ ] Review erstellen und synchronisieren
+- [ ] AutoSync funktioniert
+- [ ] Tabs ohne Umbruch
+
+### 9. CODE-STYLE & BEST PRACTICES
+- **Kotlin**: Offizielle Kotlin Style Guidelines
+- **Commits**: Conventional Commits (feat:, fix:, docs:, etc.)
+- **Keine Kommentare**: Außer der User fragt explizit
+- **Error Handling**: Immer try-catch bei Netzwerk-Operationen
+- **Logging**: Log.d() für Debug, Log.e() für Errors
+
+### 10. WARTUNG & BACKUPS
+```bash
+# PostgreSQL Backup
+docker exec myreviews-db pg_dump -U myreviews_user myreviews > backup_$(date +%Y%m%d).sql
+
+# APK archivieren
+cp app/build/outputs/apk/debug/app-debug.apk ~/backups/myreviews_$(date +%Y%m%d).apk
+
+# Logs prüfen
+docker logs myreviews-api --since 24h
+```
+
+### 11. USER-ERWARTUNGEN
+- **Kleine Commits**: Nach jeder funktionierenden Änderung
+- **CLAUDE.md Updates**: Bei wichtigen Änderungen
+- **Vorsicht mit Verzeichnissen**: Immer prüfen wo man ist
+- **Klare Kommunikation**: Bei Problemen sofort melden
+- **Dokumentation**: Code selbsterklärend, diese Datei aktuell
+
+### 12. AKTUELLE KONFIGURATION
+- **Server**: TrueNAS SCALE auf `/Volumes/myreviews`
+- **Emulator → Server**: `10.0.2.2:3000`
+- **Lokales Development**: `localhost:3000`
+- **Docker Hub Image**: `idleherb/myreviews-api`
+- **PostgreSQL**: User `myreviews_user`, DB `myreviews`
+
 # Restaurant Reviews App - Projektübersicht
 
 ## Projektziel
