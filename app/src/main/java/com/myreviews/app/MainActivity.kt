@@ -64,6 +64,11 @@ class MainActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 1f // weight
             )
+            // Verhindere Textumbruch in Tabs
+            tabMode = TabLayout.MODE_FIXED
+            tabGravity = TabLayout.GRAVITY_FILL
+            // Optional: Tabs gleichmäßig verteilen
+            isTabIndicatorFullWidth = true
         }
         headerLayout.addView(tabLayout)
         

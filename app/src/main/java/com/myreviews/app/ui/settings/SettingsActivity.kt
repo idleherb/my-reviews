@@ -563,6 +563,10 @@ class SettingsActivity : AppCompatActivity() {
             } else {
                 cloudSyncContainer.visibility = View.VISIBLE
                 autoSyncSwitch.visibility = View.VISIBLE
+                // AutoSync standardmäßig aktivieren, wenn Cloud-Sync eingeschaltet wird
+                if (!autoSyncSwitch.isChecked) {
+                    autoSyncSwitch.isChecked = true
+                }
                 // Prüfe ob Benutzername noch Anonym ist
                 val currentName = userNameEditText.text.toString().trim()
                 if (currentName.isEmpty() || currentName == "Anonym") {
