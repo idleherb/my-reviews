@@ -21,7 +21,7 @@ services:
   api:
     build: ./server
     # Use a specific tag to force rebuild when needed
-    image: myreviews-api:v1.1
+    image: myreviews-api:v1.2
     container_name: myreviews-api
     environment:
       DB_HOST: postgres
