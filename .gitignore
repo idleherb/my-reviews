@@ -76,3 +76,6 @@ node_modules/
 
 # Docker
 docker-compose.override.yml
+
+# Git credentials
+.git-credentials-local
