@@ -29,6 +29,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import com.myreviews.app.data.api.SyncResult
 import com.myreviews.app.ui.avatar.AvatarCropActivity
+import com.myreviews.app.data.sync.AutoSyncManager
 
 class SettingsActivity : AppCompatActivity() {
     
@@ -535,7 +536,9 @@ class SettingsActivity : AppCompatActivity() {
         
         // Cloud-Sync Einstellungen laden
         cloudSyncSwitch.isChecked = sharedPrefs.getBoolean(KEY_CLOUD_SYNC_ENABLED, false)
-        autoSyncSwitch.isChecked = AppModule.autoSyncManager.isAutoSyncEnabled()
+        // Fix: Lade AutoSync-Status direkt aus SharedPreferences für Konsistenz
+        val autoSyncPref = sharedPrefs.getBoolean(AutoSyncManager.KEY_AUTO_SYNC_ENABLED, true)
+        autoSyncSwitch.isChecked = autoSyncPref
         val defaultHost = resources.getString(com.myreviews.app.R.string.default_server_host)
         val defaultPort = resources.getString(com.myreviews.app.R.string.default_server_port)
         serverUrlEditText.setText(sharedPrefs.getString(KEY_SERVER_URL, defaultHost))
@@ -551,6 +554,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         
         updateUIState()
+        updateSyncButtonVisibility()
     }
     
     private fun setupListeners() {
@@ -605,6 +609,8 @@ class SettingsActivity : AppCompatActivity() {
         })
         
         autoSyncSwitch.setOnCheckedChangeListener { _, isChecked ->
+            // Save AutoSync state immediately to avoid inconsistency
+            AppModule.autoSyncManager.setAutoSyncEnabled(isChecked)
             updateSyncButtonVisibility()
         }
         
