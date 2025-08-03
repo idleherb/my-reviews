@@ -497,3 +497,275 @@ Die App synchronisiert jetzt automatisch im Hintergrund, ohne dass der Benutzer 
 - [ ] WorkManager für periodische Hintergrund-Syncs
 - [ ] Offline-Maps Integration für bessere Performance
 - [ ] Analytics und Usage-Tracking (optional)
+
+## 🚀 TrueNAS SCALE Deployment Plan
+
+### Übersicht
+Deployment der My Reviews Backend-Infrastruktur (PostgreSQL + Node.js API) auf TrueNAS SCALE Fangtooth 25.04 im Home-Netzwerk mit VPN-Zugriff.
+
+### Voraussetzungen
+- TrueNAS SCALE Fangtooth 25.04.1 installiert und konfiguriert
+- Netzwerkzugriff zum TrueNAS System
+- Grundlegende Kenntnisse der TrueNAS Web-UI
+- VPN bereits eingerichtet (keine zusätzliche Security nötig)
+
+### Phase 1: Vorbereitung auf TrueNAS
+
+#### 1.1 Storage Pool und Dataset erstellen
+1. **Navigiere zu**: Storage → Pools
+2. **Erstelle Dataset**: `apps/myreviews`
+   - Record Size: 128K (default)
+   - Compression: lz4
+   - Sync: Standard
+3. **Erstelle Unterverzeichnisse**:
+   - `apps/myreviews/postgres` (für Datenbank-Daten)
+   - `apps/myreviews/uploads` (für Avatar-Uploads)
+   - `apps/myreviews/config` (für Konfigurationsdateien)
+
+#### 1.2 Netzwerk-Konfiguration prüfen
+1. **Notiere**: IP-Adresse des TrueNAS Systems
+2. **Stelle sicher**: Ports 3000 (API) und 5432 (PostgreSQL) sind verfügbar
+3. **Prüfe**: Keine Firewall-Regeln blockieren diese Ports
+
+### Phase 2: Docker Image vorbereiten
+
+#### 2.1 API Docker Image bauen
+Da TrueNAS kein lokales Build unterstützt, müssen wir das Image vorab bauen und in eine Registry pushen:
+
+**Option A: Docker Hub (öffentlich)**
+```bash
+cd /Users/eric.hildebrand/dev/public/idleherb/my-reviews/server
+docker build -t yourusername/myreviews-api:latest .
+docker push yourusername/myreviews-api:latest
+```
+
+**Option B: Lokale Registry auf TrueNAS**
+1. Deploye zuerst eine Docker Registry auf TrueNAS
+2. Pushe das Image zur lokalen Registry
+
+**Option C: Pre-built Image bereitstellen**
+1. Exportiere das Image als TAR:
+   ```bash
+   docker save myreviews-api:latest > myreviews-api.tar
+   ```
+2. Kopiere auf TrueNAS und importiere
+
+### Phase 3: TrueNAS Docker Compose Deployment
+
+#### 3.1 Docker Compose App vorbereiten
+1. **Erstelle angepasste docker-compose.yml für TrueNAS**:
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: myreviews-db
+    environment:
+      POSTGRES_DB: myreviews
+      POSTGRES_USER: myreviews_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - /mnt/[your-pool]/apps/myreviews/postgres:/var/lib/postgresql/data
+      - /mnt/[your-pool]/apps/myreviews/config/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myreviews_user -d myreviews"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: yourusername/myreviews-api:latest
+    container_name: myreviews-api
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: myreviews
+      DB_USER: myreviews_user
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      PORT: 3000
+      NODE_ENV: production
+      CORS_ORIGIN: "*"
+    volumes:
+      - /mnt/[your-pool]/apps/myreviews/uploads:/app/uploads
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+#### 3.2 Via TrueNAS Custom App (Docker Compose)
+1. **Navigiere zu**: Apps → Discover Apps → Custom App
+2. **Wähle**: "Create Custom App"
+3. **Application Name**: `myreviews`
+4. **Container Images**: Nicht nötig bei Docker Compose
+5. **Compose Configuration**:
+   - Füge die docker-compose.yml ein
+   - Oder verwende Git Repository URL
+6. **Storage**: Wird über docker-compose.yml Volumes definiert
+7. **Install** klicken
+
+#### 3.3 Alternative: Via Portainer (Empfohlen für komplexe Setups)
+1. **Installiere Portainer** aus dem TrueNAS App Katalog
+2. **Öffne Portainer UI**: `http://[truenas-ip]:9000`
+3. **Erstelle Stack**:
+   - Stacks → Add Stack
+   - Name: `myreviews`
+   - Build method: "Web editor" oder "Git Repository"
+   - Paste docker-compose.yml oder Git URL
+   - Environment variables:
+     - `DB_PASSWORD`: [sicheres-passwort]
+4. **Deploy the stack**
+
+#### 3.4 Wichtige Pfad-Anpassungen
+- Ersetze `/mnt/[your-pool]/` mit deinem tatsächlichen Pool-Pfad
+- Beispiel: `/mnt/tank/apps/myreviews/`
+- Stelle sicher, dass die Verzeichnisse existieren und Schreibrechte haben
+
+```yaml
+name: myreviews
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: myreviews
+      POSTGRES_USER: myreviews_user
+      POSTGRES_PASSWORD: your_secure_password
+    volumes:
+      - type: bind
+        source: /mnt/pool/apps/myreviews/postgres
+        target: /var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myreviews_user -d myreviews"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: yourusername/myreviews-api:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: myreviews
+      DB_USER: myreviews_user
+      DB_PASSWORD: your_secure_password
+      PORT: 3000
+      NODE_ENV: production
+      CORS_ORIGIN: "*"
+    volumes:
+      - type: bind
+        source: /mnt/pool/apps/myreviews/uploads
+        target: /app/uploads
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+```
+
+3. **Wichtige Anpassungen**:
+   - Ersetze `/mnt/pool/` mit deinem tatsächlichen Pool-Pfad
+   - Verwende ein sicheres Passwort
+   - Passe die Image-URL an
+
+#### 3.2 Via Wizard (Alternative)
+Falls YAML nicht funktioniert, nutze den Custom App Wizard:
+
+1. **App 1: PostgreSQL**
+   - Name: `myreviews-postgres`
+   - Image: `postgres:15-alpine`
+   - Environment Variables hinzufügen
+   - Host Path Volume konfigurieren
+   - Port 5432 freigeben
+
+2. **App 2: API**
+   - Name: `myreviews-api`
+   - Image: Dein gepushtes Image
+   - Environment Variables hinzufügen
+   - Host Path Volume für uploads
+   - Port 3000 freigeben
+
+### Phase 4: Datenbank initialisieren
+
+#### 4.1 Schema laden
+1. **Kopiere** `schema.sql` nach TrueNAS:
+   ```bash
+   scp server/db/schema.sql root@truenas-ip:/mnt/pool/apps/myreviews/config/
+   ```
+
+2. **Führe aus** (via TrueNAS Shell):
+   ```bash
+   docker exec -i myreviews-postgres psql -U myreviews_user -d myreviews < /path/to/schema.sql
+   ```
+
+#### 4.2 Migrations ausführen
+Falls Migrations vorhanden:
+```bash
+docker exec myreviews-api node run-migration.js
+```
+
+### Phase 5: Android App konfigurieren
+
+#### 5.1 Server-URL anpassen
+In der Android App Einstellungen:
+- Server URL: `truenas-ip` (ohne http://)
+- Port: `3000`
+- Verbindung testen
+
+#### 5.2 Netzwerk-Zugriff
+- **Im lokalen Netzwerk**: Direkte IP verwenden
+- **Über VPN**: VPN-IP oder Hostname verwenden
+
+### Phase 6: Monitoring und Wartung
+
+#### 6.1 Logs prüfen
+- TrueNAS UI: Apps → Installed → App Name → Logs
+- Oder via Shell: `docker logs myreviews-api`
+
+#### 6.2 Backups
+1. **Datenbank-Backup** (täglich):
+   ```bash
+   docker exec myreviews-postgres pg_dump -U myreviews_user myreviews > backup.sql
+   ```
+
+2. **Upload-Verzeichnis**: Snapshot des Datasets
+
+#### 6.3 Updates
+1. Neues Docker Image bauen und pushen
+2. In TrueNAS: App stoppen → Image-Tag ändern → App starten
+
+### Troubleshooting
+
+#### Häufige Probleme:
+1. **Permission Errors**: 
+   - Stelle sicher, dass die Datasets die richtigen Permissions haben
+   - UID/GID im Container muss zum Host passen
+
+2. **Netzwerk-Probleme**:
+   - Prüfe ob die Ports nicht bereits belegt sind
+   - Teste mit `curl http://truenas-ip:3000/api/health`
+
+3. **Container startet nicht**:
+   - Logs prüfen
+   - Healthchecks validieren
+   - Environment Variables überprüfen
+
+### Sicherheitshinweise
+- Da im VPN: Keine zusätzliche Authentifizierung nötig
+- Trotzdem: Verwende sichere Passwörter
+- Regelmäßige Backups sind wichtig
+- Updates zeitnah einspielen
