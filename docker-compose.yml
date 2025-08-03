@@ -5,17 +5,18 @@ services:
     image: postgres:15-alpine
     container_name: myreviews-db
     environment:
-      POSTGRES_DB: myreviews
-      POSTGRES_USER: myreviews_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./server/db/migrations:/docker-entrypoint-initdb.d/migrations
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myreviews_user -d myreviews"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,20 +27,22 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: myreviews
-      DB_USER: myreviews_user
-      DB_PASSWORD: ${DB_PASSWORD:-changeme}
-      PORT: 3000
-      NODE_ENV: production
-      CORS_ORIGIN: "*"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      PORT: ${API_PORT}
+      NODE_ENV: ${NODE_ENV:-production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    volumes:
+      - ./server/uploads:/app/uploads
     ports:
-      - "3000:3000"
+      - "${API_PORT}:${API_PORT}"
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${API_PORT}/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

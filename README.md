@@ -19,7 +19,20 @@ Eine native Android-App für Restaurantbewertungen ohne Google-Dienste, ausschli
 
 ## Setup
 
-(Anleitung folgt)
+### Android App
+1. Open project in Android Studio
+2. Build and run on device/emulator
+3. Configure server URL in Settings if using cloud sync
+
+### Backend Server
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+
+Quick start with Docker:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+docker-compose up -d
+```
 
 ## Lizenz
 
