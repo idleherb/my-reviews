@@ -64,11 +64,13 @@ class MainActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 1f // weight
             )
-            // Verhindere Textumbruch in Tabs
+            // Fixed tabs mit kompakterem Layout
             tabMode = TabLayout.MODE_FIXED
             tabGravity = TabLayout.GRAVITY_FILL
-            // Optional: Tabs gleichmäßig verteilen
-            isTabIndicatorFullWidth = true
+            // Reduziere die Tab-Höhe für mehr Platz
+            minimumHeight = resources.getDimensionPixelSize(R.dimen.touch_target_min)
+            // Entferne extra Padding am TabLayout selbst
+            setPadding(0, 0, 0, 0)
         }
         headerLayout.addView(tabLayout)
         
@@ -140,6 +142,25 @@ class MainActivity : AppCompatActivity() {
                 else -> ""
             }
         }.attach()
+        
+        // Reduziere den Padding zwischen den Tabs
+        for (i in 0 until tabLayout.tabCount) {
+            val tab = tabLayout.getTabAt(i)
+            tab?.view?.let { tabView ->
+                // Reduziere den horizontalen Padding
+                val params = tabView.layoutParams
+                if (params is android.view.ViewGroup.MarginLayoutParams) {
+                    params.marginEnd = 0
+                    params.marginStart = 0
+                }
+                tabView.setPadding(
+                    resources.getDimensionPixelSize(R.dimen.spacing_xs), // Sehr kleiner Padding links
+                    tabView.paddingTop,
+                    resources.getDimensionPixelSize(R.dimen.spacing_xs), // Sehr kleiner Padding rechts
+                    tabView.paddingBottom
+                )
+            }
+        }
     }
     
     fun switchToMapTab() {
